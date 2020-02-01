@@ -1,0 +1,3 @@
+[submodule "libbo"]
+	path = libbo
+	url = https://github.com/MatsuTaku/libbo.git
