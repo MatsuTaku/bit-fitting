@@ -201,7 +201,6 @@ void multiply_polynomial_inplace(std::vector<complex_t>& g, std::vector<complex_
   auto len = calc::upper_pow2(g.size()+h.size()-1);
   g.resize(len, 0);
   h.resize(len, 0);
-  std::cout << "len: " << len << std::endl;
   multiply_polynomial_inplace(g.begin(), g.end(), h.begin(), h.end());
 }
 

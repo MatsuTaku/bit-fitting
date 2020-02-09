@@ -47,27 +47,16 @@ struct fft_bit_fit {
     const size_t poly_size = calc::upper_pow2(F+P-1);
     std::vector<complex_t> field_poly(poly_size, 0);
     for (size_t i = 0; i < F; i++)
-      field_poly[i] = field[i];
-
-    for (size_t i = 0; i < poly_size; i++)
-      std::cout << field_poly[i].real();
-    std::cout << std::endl;
+      field_poly[i] = field[i] ? 0 : 1;
 
     Polynomial pattern_poly_rev(poly_size, 0);
     for (auto p : pattern)
       pattern_poly_rev[(poly_size-p)%poly_size] = 1;
 
-    for (size_t i = 0; i < poly_size; i++)
-      std::cout << pattern_poly_rev[i].real();
-    std::cout << std::endl;
-
     multiply_polynomial_inplace(field_poly.begin(), field_poly.end(), pattern_poly_rev.begin(), pattern_poly_rev.end());
-    for (size_t i = 0; i < F+P; i++)
-      std::cout << size_t(field_poly[i].real()+0.5);
-    std::cout << std::endl;
 
     for (size_t i = initial_pos; i < F; i++) {
-      if (size_t(field_poly[i].real()+0.5) == pattern.size())
+      if (size_t(field_poly[i].real()+0.1) == 0)
         return i;
     }
     return F;
