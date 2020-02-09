@@ -1,3 +1,6 @@
 [submodule "libbo"]
 	path = libbo
 	url = https://github.com/MatsuTaku/libbo.git
+[submodule "SimpleDatastructure"]
+	path = SimpleDatastructure
+	url = https://github.com/MatsuTaku/SimpleDatastructure.git

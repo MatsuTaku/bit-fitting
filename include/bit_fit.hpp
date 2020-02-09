@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#include "sim_ds/BitVector.hpp"
+
 #include "fft.hpp"
 
 namespace bit_fitting {
@@ -25,10 +27,9 @@ struct brute_force_bit_fit {
   template <typename BitSequence, typename T>
   size_t operator()(const BitSequence& field, const std::vector<T>& pattern, size_t initial_pos) const {
     const size_t F = field.size();
-    const size_t back_p = pattern.back();
-    for (size_t i = initial_pos; i < F-back_p; i++) {
+    for (size_t i = initial_pos; i < F; i++) {
       size_t k = 0;
-      while (k < pattern.size() and field[i + pattern[k]]) {
+      while (k < pattern.size() and (i + pattern[k] >= field.size() or field[i + pattern[k]])) {
         k++;
       }
       if (k == pattern.size()) {
@@ -38,6 +39,40 @@ struct brute_force_bit_fit {
     return F;
   }
 };
+
+
+struct bit_parallel_bit_fit {
+  template <typename BitSequence, typename T>
+  size_t operator()(const BitSequence& field, const std::vector<T>& pattern, size_t initial_pos) const {
+    const size_t F = field.size();
+    auto get_word = [&](size_t b) {
+      if (b >= (field.size()-1)/64+1)
+        return (uint64_t)-1ull;
+      return *(field.data() + b);
+    };
+    auto get_target_word = [&](size_t p) {
+      uint64_t word = get_word(p/64) >> (p%64);
+      if (p%64 != 0)
+        word |= get_word(p/64 + 1) << (64-p%64);
+      return word;
+    };
+    for (size_t b = 0; b < (F-1)/64+1; b++) {
+      auto front = b * 64;
+      uint64_t mask = -1ull;
+      for (auto p : pattern) {
+        uint64_t word = get_target_word(front + p);
+        mask &= word;
+        if (mask == 0)
+          break;
+      }
+      if (mask != 0) {
+        return front + bo::ctz_u64(mask);
+      }
+    }
+    return F;
+  }
+};
+
 
 struct fft_bit_fit {
   template <typename BitSequence, typename T>

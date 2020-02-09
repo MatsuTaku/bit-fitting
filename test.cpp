@@ -3,6 +3,8 @@
 #include <bitset>
 #include <unordered_set>
 
+#include "sim_ds/BitVector.hpp"
+
 #include "bit_fit.hpp"
 
 namespace {
@@ -19,7 +21,7 @@ void show_pattern(const std::vector<size_t> pattern) {
   std::cout << std::endl;
 }
 
-void test(std::vector<bool> field, std::vector<size_t> pattern, size_t ans) {
+void test(const sim_ds::BitVector& field, const std::vector<size_t>& pattern, size_t ans) {
   std::cout << "ANSWER = " << ans << std::endl;
 
   auto run_algorithm = [&](std::string alg_name, auto bit_fit) {
@@ -29,6 +31,7 @@ void test(std::vector<bool> field, std::vector<size_t> pattern, size_t ans) {
     std::cout << alg_name << ":\t" << pos << "\t in: " << (double)time/1000000 << "sec" << std::endl;
   };
   run_algorithm("Brute force", bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>());
+  run_algorithm("Bit parallel", bit_fitting::bit_fit<bit_fitting::bit_parallel_bit_fit>());
   run_algorithm("FFT", bit_fitting::bit_fit<bit_fitting::fft_bit_fit>());
 }
 
@@ -37,33 +40,34 @@ void benchmark(size_t field_size, size_t alphabet_size, size_t inv_exist_rate) {
   size_t P = alphabet_size;
   std::vector<size_t> p;
   for (size_t i = 0; i < P; i++) {
-    if (rand()%inv_exist_rate == 0)
+    if (arc4random()%inv_exist_rate == 0)
       p.push_back(i);
   }
-  size_t ans = rand()%(F-P);
-  std::vector<bool> f(F, 1);
+  size_t ans = arc4random()%F;
+  sim_ds::BitVector f(F, 1);
   std::unordered_set<size_t> p_set;
   for (auto pos : p)
     p_set.insert(ans + pos);
   for (size_t i = 0; i < F-P+1; i++) {
     if (i == ans)
       continue;
-    size_t target = i + p[rand()%p.size()];
+    size_t target = i + p[arc4random()%p.size()];
     while (p_set.count(target) == 1)
-      target = i + p[rand()%p.size()];
+      target = i + p[arc4random()%p.size()];
     f[target] = 0;
   }
-  std::cout << "N:\t" << field_size << "M:\t" << alphabet_size << "rate: 1/" << inv_exist_rate << std::endl;
-  test(f, p, ans);
   std::cout << "---------" << std::endl;
+  std::cout << "N: " << field_size << "\tM: " << alphabet_size << "\trate: 1/" << inv_exist_rate << std::endl;
+  test(f, p, ans);
 }
 
 }
 
 int main() {
   std::cout << "Test various bit-fit algorithm" << std::endl;
-  for (size_t log_m = 8; log_m < 24; log_m++) {
-    benchmark(1<<24, 1<<log_m, 4);
+  size_t log_n = 23;
+  for (size_t log_m = 8; log_m < log_n; log_m++) {
+    benchmark(1<<log_n, 1<<log_m, 4);
   }
 
 //  test({1,1,1,0,1,0,1,1,1,0,0,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1},
