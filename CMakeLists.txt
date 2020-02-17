@@ -11,5 +11,7 @@ add_subdirectory(libbo EXCLUDE_FROM_ALL)
 add_subdirectory(SimpleDataStructure EXCLUDE_FROM_ALL)
 target_link_libraries(bit-fitting INTERFACE libbo sim_ds)
 
+target_compile_options(bit-fitting INTERFACE -march=native)
+
 add_executable(test test.cpp)
 target_link_libraries(test bit-fitting)

@@ -46,7 +46,7 @@ struct bit_parallel_bit_fit {
   size_t operator()(const BitSequence& field, const std::vector<T>& pattern, size_t initial_pos) const {
     const size_t F = field.size();
     auto get_word = [&](size_t b) {
-      if (b >= (field.size()-1)/64+1)
+      if (b >= (F-1)/64+1)
         return (uint64_t)-1ull;
       return *(field.data() + b);
     };
