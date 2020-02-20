@@ -207,15 +207,16 @@ void multiply_polynomial_inplace(std::vector<complex_t>& g, std::vector<complex_
 
 class Polynomial : public std::vector<complex_t> {
   using _base = std::vector<complex_t>;
+
  public:
   using base_type = _base;
 
   Polynomial() = default;
 
-  Polynomial(base_type&& vec) : _base(std::move(vec)) {}
+  explicit Polynomial(base_type&& vec) : _base(std::move(vec)) {}
 
-  Polynomial(size_t size) : _base(size, 0) {}
-  Polynomial(size_t size, complex_t initial_val) : _base(size, initial_val) {}
+  explicit Polynomial(size_t size) : _base(size, 0) {}
+  explicit Polynomial(size_t size, complex_t initial_val) : _base(size, initial_val) {}
 
   Polynomial operator*(const Polynomial& x) const {
     base_type g = (_base&)*this;

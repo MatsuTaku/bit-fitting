@@ -13,5 +13,5 @@ target_link_libraries(bit-fitting INTERFACE libbo sim_ds)
 
 target_compile_options(bit-fitting INTERFACE -march=native)
 
-add_executable(test test.cpp)
-target_link_libraries(test bit-fitting)
+add_executable(bench bench.cpp)
+target_link_libraries(bench bit-fitting)
