@@ -61,7 +61,7 @@ sim_ds::BitVector create_field_fit_at_with(size_t field_size, size_t x, const st
 }
 
 void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rate) {
-  double time_sum[kNumAlgorithms];
+  std::array<double, kNumAlgorithms> time_sum = {};
   auto fitters = std::make_tuple(bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>(),
 								 bit_fitting::bit_fit<bit_fitting::bit_parallel_bit_fit>(),
 								 bit_fitting::bit_fit<bit_fitting::fft_bit_fit>());
@@ -69,17 +69,17 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
 	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
 	auto ans = arc4random()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
-	volatile auto t = time_us_in([&]{std::get<0>(fitters).find(field, pattern);});
-	t = time_us_in([&]{std::get<1>(fitters).find(field, pattern);});
-	t = time_us_in([&]{std::get<2>(fitters).find(field, pattern);});
+	volatile auto t = time_us_in([&]{std::cout << std::get<0>(fitters).find(field, pattern) << std::endl;});
+	t = time_us_in([&]{std::cout << std::get<1>(fitters).find(field, pattern) << std::endl;});
+	t = time_us_in([&]{std::cout << std::get<2>(fitters).find(field, pattern) << std::endl;});
   }
   for (int i = 0; i < kNumTests; i++) {
 	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
 	auto ans = arc4random()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
-	time_sum[0] += time_us_in([&]{std::get<0>(fitters).find(field, pattern);});
-	time_sum[1] += time_us_in([&]{std::get<1>(fitters).find(field, pattern);});
-	time_sum[2] += time_us_in([&]{std::get<2>(fitters).find(field, pattern);});
+	time_sum[0] += time_us_in([&]{std::cout << std::get<0>(fitters).find(field, pattern) << std::endl;});
+	time_sum[1] += time_us_in([&]{std::cout << std::get<1>(fitters).find(field, pattern) << std::endl;});
+	time_sum[2] += time_us_in([&]{std::cout << std::get<2>(fitters).find(field, pattern) << std::endl;});
   }
 
   std::cout << "---------" << std::endl
@@ -94,8 +94,8 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
 
 int main() {
   std::cout << "Test various bit-fit algorithm" << std::endl;
-  size_t log_n = 26;
-  for (size_t log_m = 8; log_m < log_n; log_m+=4) {
+  size_t log_n = 24;
+  for (size_t log_m = 4; log_m < log_n; log_m+=2) {
 	benchmark_all(1 << log_n, 1 << log_m, 4);
   }
 
