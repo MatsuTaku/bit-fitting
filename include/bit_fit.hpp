@@ -138,17 +138,17 @@ struct fft_bit_fit {
     for (auto p : pattern)
       pattern_poly_rev[(poly_size-p)%poly_size] = 1;
 
-    std::cout << "  initial arrays: " << double(clock() - start)/1000000 << std::endl;
+    std::cout << "  initialize arrays: " << double(clock() - start)/1000000 << "s" << std::endl;
     start = clock();
 
     multiply_polynomial_inplace(field_poly.begin(), field_poly.end(), pattern_poly_rev.begin(), pattern_poly_rev.end());
 
-    std::cout << "  multiply polynomial: " << double(clock() - start)/1000000 << std::endl;
+    std::cout << "  multiply polynomial: " << double(clock() - start)/1000000 << "s" << std::endl;
     start = clock();
 
     for (size_t i = initial_pos; i < F; i++) {
       if (size_t(field_poly[i].real()+0.1) == 0) {
-        std::cout << "  find min answer: " << double(clock() - start)/1000000 << std::endl;
+        std::cout << "  find min answer: " << double(clock() - start)/1000000 << "s" << std::endl;
 
         return i;
       }
