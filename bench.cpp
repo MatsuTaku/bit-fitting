@@ -10,7 +10,14 @@
 namespace {
 
 constexpr size_t kNumTests = 1;
-constexpr size_t kNumAlgorithms = 3;
+constexpr size_t kNumAlgorithms = 4;
+using bit_fitter_tuple = std::tuple<
+    bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>,
+	bit_fitting::bit_fit<bit_fitting::empty_link_bit_fit>,
+	bit_fitting::bit_fit<bit_fitting::bit_parallel_bit_fit>,
+	bit_fitting::bit_fit<bit_fitting::fft_bit_fit>
+    >;
+bit_fitter_tuple bit_fitters;
 
 std::random_device rd;
 std::mt19937_64 eng(rd());
@@ -50,10 +57,10 @@ std::vector<size_t> create_randmom_pieces(size_t alphabet_size, size_t inv_exist
   return p;
 }
 
-sim_ds::BitVector create_field_fit_at_with(size_t field_size, size_t x, const std::vector<size_t>& pieces) {
+bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_t x, const std::vector<size_t>& pieces) {
   auto F = field_size;
   auto P = pieces.back();
-  sim_ds::BitVector f(F, true);
+  bit_fitting::default_bit_field field(F, true);
   std::unordered_set<size_t> p_set;
   for (auto pos : pieces)
 	p_set.insert(x + pos);
@@ -63,39 +70,72 @@ sim_ds::BitVector create_field_fit_at_with(size_t field_size, size_t x, const st
 	size_t target = i + pieces[random_ll()%pieces.size()];
 	while (p_set.count(target) == 1)
 	  target = i + pieces[random_ll()%pieces.size()];
-	f[target] = false;
+	field[target] = false;
   }
-  return f;
+  return field;
+}
+
+template <class Action, size_t Num = 0>
+void for_each_fitter(Action action) {
+  action(Num, std::get<Num>(bit_fitters));
+  if constexpr (Num+1 < kNumAlgorithms) {
+    for_each_fitter<Action, Num+1>(action);
+  }
 }
 
 void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rate) {
   std::array<double, kNumAlgorithms> time_sum = {};
-  auto fitters = std::make_tuple(bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>(),
-								 bit_fitting::bit_fit<bit_fitting::bit_parallel_bit_fit>(),
-								 bit_fitting::bit_fit<bit_fitting::fft_bit_fit>());
   { // warm up
 	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
 	auto ans = random_ll()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
-	volatile auto t = time_us_in([&]{std::cout << std::get<0>(fitters).find(field, pattern) << std::endl;});
-	t = time_us_in([&]{std::cout << std::get<1>(fitters).find(field, pattern) << std::endl;});
-	t = time_us_in([&]{std::cout << std::get<2>(fitters).find(field, pattern) << std::endl;});
+	volatile double t = 0;
+	{
+	  auto f = std::get<0>(bit_fitters).field(&field);
+	  t = time_us_in([&]{ std::cout << std::get<0>(bit_fitters).find(f, pattern) << std::endl; });
+	}
+	{
+	  auto f = std::get<1>(bit_fitters).field(&field);
+	  t = time_us_in([&]{ std::cout << std::get<1>(bit_fitters).find(f, pattern) << std::endl; });
+	}
+	{
+	  auto f = std::get<2>(bit_fitters).field(&field);
+	  t = time_us_in([&]{ std::cout << std::get<2>(bit_fitters).find(f, pattern) << std::endl; });
+	}
+	{
+	  auto f = std::get<3>(bit_fitters).field(&field);
+	  t = time_us_in([&]{ std::cout << std::get<3>(bit_fitters).find(f, pattern) << std::endl; });
+	}
   }
   for (int i = 0; i < kNumTests; i++) {
 	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
 	auto ans = random_ll()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
-	time_sum[0] += time_us_in([&]{std::cout << std::get<0>(fitters).find(field, pattern) << std::endl;});
-	time_sum[1] += time_us_in([&]{std::cout << std::get<1>(fitters).find(field, pattern) << std::endl;});
-	time_sum[2] += time_us_in([&]{std::cout << std::get<2>(fitters).find(field, pattern) << std::endl;});
+	{
+	  auto f = std::get<0>(bit_fitters).field(&field);
+	  time_sum[0] = time_us_in([&]{ std::cout << std::get<0>(bit_fitters).find(f, pattern) << std::endl; });
+	}
+	{
+	  auto f = std::get<1>(bit_fitters).field(&field);
+	  time_sum[1] = time_us_in([&]{ std::cout << std::get<1>(bit_fitters).find(f, pattern) << std::endl; });
+	}
+	{
+	  auto f = std::get<2>(bit_fitters).field(&field);
+	  time_sum[2] = time_us_in([&]{ std::cout << std::get<2>(bit_fitters).find(f, pattern) << std::endl; });
+	}
+	{
+	  auto f = std::get<3>(bit_fitters).field(&field);
+	  time_sum[3] = time_us_in([&]{ std::cout << std::get<3>(bit_fitters).find(f, pattern) << std::endl; });
+	}
   }
 
   std::cout << "---------" << std::endl
   << "N: " << field_size << "\tM: " << alphabet_size << "\trate: 1/" << inv_exist_rate << std::endl
   << std::fixed
   << "Brute force: " << "\t in " << time_sum[0]/kNumTests/1000000 << " sec" << std::endl
-  << "Bit parallel: " << "\t in " << time_sum[1]/kNumTests/1000000 << " sec" << std::endl
-  << "FFT: " << "\t in " << time_sum[2]/kNumTests/1000000 << " sec" << std::endl;
+  << "Empty link: " << "\t in " << time_sum[1]/kNumTests/1000000 << " sec" << std::endl
+  << "Bit parallel: " << "\t in " << time_sum[2]/kNumTests/1000000 << " sec" << std::endl
+  << "FFT: " << "\t in " << time_sum[3]/kNumTests/1000000 << " sec" << std::endl;
 }
 
 }
