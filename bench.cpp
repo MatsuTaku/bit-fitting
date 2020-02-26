@@ -9,7 +9,7 @@
 
 namespace {
 
-constexpr size_t kNumTests = 1;
+constexpr size_t kNumTests = 10;
 constexpr size_t kNumAlgorithms = 4;
 using bit_fitter_tuple = std::tuple<
     bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>,
