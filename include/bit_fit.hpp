@@ -75,7 +75,7 @@ struct empty_link_bit_fit {
   size_t operator()(const field_type& field, const std::vector<T>& pattern, size_t initial_pos) const {
     const size_t F = field.size();
     auto front_it = field.el_begin();
-    while ((long long)front_it.index() - (long long)pattern[0] < initial_pos)
+    while ((long long)front_it.index() - (long long)pattern[0] < (long long)initial_pos)
         ++front_it;
     do {
       auto front = (long long)front_it.index() - (long long)pattern[0];
