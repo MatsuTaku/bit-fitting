@@ -2,6 +2,7 @@
 #define BIT_FIT_HPP_
 
 #include <vector>
+#include <exception>
 
 #include "sim_ds/BitVector.hpp"
 
@@ -60,9 +61,6 @@ struct brute_force_bit_fit {
 
 struct empty_link_bit_fit {
   using auxiliary_type = EmptyLinkedList;
-
-  template <typename BitSequence, typename T>
-  size_t operator()(const BitSequence& field, const std::vector<T>& pattern, size_t initial_pos) const {}
 
   template <typename BitSequence, typename T>
   size_t operator()(const BitSequence& field, const std::vector<T>& pattern, const auxiliary_type& el_list, size_t initial_pos) const {

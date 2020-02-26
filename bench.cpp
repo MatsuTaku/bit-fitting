@@ -1,6 +1,6 @@
-#include <vector>
 #include <iostream>
-#include <bitset>
+#include <random>
+#include <vector>
 #include <unordered_set>
 
 #include "sim_ds/BitVector.hpp"
@@ -11,6 +11,14 @@ namespace {
 
 constexpr size_t kNumTests = 1;
 constexpr size_t kNumAlgorithms = 3;
+
+std::random_device rd;
+std::mt19937_64 eng(rd());
+std::uniform_int_distribution<unsigned long long> distr;
+
+uint64_t random_ll() {
+  return distr(eng);
+}
 
 void show_pattern(const std::vector<size_t>& pattern) {
   for (int i = 0, j = 0; i <= pattern.back(); i++) {
@@ -35,7 +43,7 @@ std::vector<size_t> create_randmom_pieces(size_t alphabet_size, size_t inv_exist
   std::vector<size_t> p;
   while (p.empty()) {
 	for (size_t i = 0; i < alphabet_size; i++) {
-	  if (arc4random()%inv_exist_rate == 0)
+	  if (random_ll()%inv_exist_rate == 0)
 		p.push_back(i);
 	}
   }
@@ -52,9 +60,9 @@ sim_ds::BitVector create_field_fit_at_with(size_t field_size, size_t x, const st
   for (size_t i = 0; i < F-P; i++) {
 	if (i == x)
 	  continue;
-	size_t target = i + pieces[arc4random()%pieces.size()];
+	size_t target = i + pieces[random_ll()%pieces.size()];
 	while (p_set.count(target) == 1)
-	  target = i + pieces[arc4random()%pieces.size()];
+	  target = i + pieces[random_ll()%pieces.size()];
 	f[target] = false;
   }
   return f;
@@ -67,7 +75,7 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
 								 bit_fitting::bit_fit<bit_fitting::fft_bit_fit>());
   { // warm up
 	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
-	auto ans = arc4random()%field_size;
+	auto ans = random_ll()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
 	volatile auto t = time_us_in([&]{std::cout << std::get<0>(fitters).find(field, pattern) << std::endl;});
 	t = time_us_in([&]{std::cout << std::get<1>(fitters).find(field, pattern) << std::endl;});
@@ -75,7 +83,7 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
   }
   for (int i = 0; i < kNumTests; i++) {
 	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
-	auto ans = arc4random()%field_size;
+	auto ans = random_ll()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
 	time_sum[0] += time_us_in([&]{std::cout << std::get<0>(fitters).find(field, pattern) << std::endl;});
 	time_sum[1] += time_us_in([&]{std::cout << std::get<1>(fitters).find(field, pattern) << std::endl;});
