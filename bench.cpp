@@ -67,6 +67,12 @@ bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_
   for (size_t i = 0; i < F-P; i++) {
 	if (i == x)
 	  continue;
+    bool should_guard = true;
+    for (auto p : pieces) {
+      should_guard &= field[i + p];
+    }
+    if (not should_guard)
+      continue;
 	size_t target = i + pieces[random_ll()%pieces.size()];
 	while (p_set.count(target) == 1)
 	  target = i + pieces[random_ll()%pieces.size()];
