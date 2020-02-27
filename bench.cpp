@@ -119,19 +119,19 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
 	{
 	  auto f = std::get<0>(bit_fitters).field(&field);
-	  time_sum[0] = time_us_in([&]{ std::cout << std::get<0>(bit_fitters).find(f, pattern) << std::endl; });
+	  time_sum[0] += time_us_in([&]{ std::cout << std::get<0>(bit_fitters).find(f, pattern) << std::endl; });
 	}
 	{
 	  auto f = std::get<1>(bit_fitters).field(&field);
-	  time_sum[1] = time_us_in([&]{ std::cout << std::get<1>(bit_fitters).find(f, pattern) << std::endl; });
+	  time_sum[1] += time_us_in([&]{ std::cout << std::get<1>(bit_fitters).find(f, pattern) << std::endl; });
 	}
 	{
 	  auto f = std::get<2>(bit_fitters).field(&field);
-	  time_sum[2] = time_us_in([&]{ std::cout << std::get<2>(bit_fitters).find(f, pattern) << std::endl; });
+	  time_sum[2] += time_us_in([&]{ std::cout << std::get<2>(bit_fitters).find(f, pattern) << std::endl; });
 	}
 	{
 	  auto f = std::get<3>(bit_fitters).field(&field);
-	  time_sum[3] = time_us_in([&]{ std::cout << std::get<3>(bit_fitters).find(f, pattern) << std::endl; });
+	  time_sum[3] += time_us_in([&]{ std::cout << std::get<3>(bit_fitters).find(f, pattern) << std::endl; });
 	}
   }
 
