@@ -76,6 +76,8 @@ bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_
     bool should_guard = true;
     for (auto p : pieces) {
       should_guard &= field[i + p];
+      if (not should_guard)
+        break;
     }
     if (not should_guard)
       continue;
@@ -145,7 +147,7 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
 
 int main() {
   std::cout << "Test various bit-fit algorithm" << std::endl;
-  size_t log_n = 24;
+  size_t log_n = 22;
   for (size_t log_m = 4; log_m < log_n; log_m+=2) {
 	benchmark_all(1 << log_n, 1 << log_m, 4);
   }
