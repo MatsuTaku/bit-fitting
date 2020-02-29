@@ -253,7 +253,7 @@ void _fft_avx(size_t len, size_t stride, It x_begin, It y_begin) {
           const __m256d a = _mm256_load_pd(xd + 2*stride*(p + 0));
           const __m256d b = _mm256_load_pd(xd + 2*stride*(p + m));
           _mm256_store_pd(yd + 2*stride*(2*p + 0), _mm256_add_pd(a, b));
-          _mm256_store_pd(yd + 2*stride*(2*p + 1), mulpz2(wp, _mm256_add_pd(a, b)));
+          _mm256_store_pd(yd + 2*stride*(2*p + 1), mulpz2(wp, _mm256_sub_pd(a, b)));
         }
       }
     }
@@ -313,8 +313,16 @@ void ifft(It vec_begin, It vec_end, It aux_begin, It aux_end) {
   assert(bo::popcnt_u64(len) == 1);
   assert(aux_end - aux_begin == len);
   fft<1>(vec_begin, vec_end, aux_begin, aux_end);
+#ifdef __AVX__
+  const auto ll = _mm256_set1_pd((double)len);
+  for (auto it = vec_begin; it != vec_end; it+=2) {
+    const auto ab = _mm256_load_pd(it->data());
+    _mm256_store_pd(it->data(), _mm256_div_pd(ab, ll));
+  }
+#else
   for (auto it = vec_begin; it != vec_end; ++it)
     *it /= len;
+#endif
 }
 
 template <typename It>
@@ -337,9 +345,16 @@ void multiply_polynomial(It g_begin, It g_end, It h_begin, It h_end, It f_begin,
   fft(g_begin, g_end);
   fft(h_begin, h_end);
   auto len = g_end - g_begin;
-  for (size_t i = 0 ; i < len; i++) {
-    *(f_begin+i) = *(g_begin+i) * *(h_begin+i);
+#ifdef __AVX__
+  for (size_t i = 0; i < len; i+=2) {
+    const auto ab = _mm256_load_pd((g_begin+i)->data());
+    const auto cd = _mm256_load_pd((h_begin+i)->data());
+    _mm256_store_pd((f_begin+i)->data(), mulpz2(ab, cd));
   }
+#else
+  for (size_t i = 0 ; i < len; i++)
+    *(f_begin+i) = *(g_begin+i) * *(h_begin+i);
+#endif
   ifft(f_begin, f_end);
 }
 
@@ -357,8 +372,16 @@ void multiply_polynomial_inplace(It g_begin, It g_end, It h_begin, It h_end) {
   fft(g_begin, g_end);
   fft(h_begin, h_end);
   auto len = g_end - g_begin;
+#ifdef __AVX__
+  for (size_t i = 0; i < len; i+=2) {
+    const auto ab = _mm256_load_pd((g_begin+i)->data());
+    const auto cd = _mm256_load_pd((h_begin+i)->data());
+    _mm256_store_pd((g_begin+i)->data(), mulpz2(ab, cd));
+  }
+#else
   for (auto git = g_begin, hit = h_begin; git != g_end; ++git, ++hit)
     *git *= *hit;
+#endif
   ifft(g_begin, g_end);
 }
 

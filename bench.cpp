@@ -87,14 +87,6 @@ bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_
   return field;
 }
 
-template <class Action, size_t Num = 0>
-void for_each_fitter(Action action) {
-  action(Num, std::get<Num>(bit_fitters));
-  if constexpr (Num+1 < kNumAlgorithms) {
-    for_each_fitter<Action, Num+1>(action);
-  }
-}
-
 void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rate) {
   std::array<double, kNumAlgorithms> time_sum = {};
   volatile long long base = 0;

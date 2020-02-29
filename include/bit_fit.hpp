@@ -101,12 +101,12 @@ struct bit_parallel_bit_fit {
   size_t operator()(const field_type& field, const std::vector<T>& pattern, size_t initial_pos) const {
     const size_t F = field.size();
 
-    auto get_word = [&](size_t b) {
+    auto get_word = [&](size_t b) -> uint64_t {
       if (b >= (F-1)/64+1)
         return (uint64_t)-1ull;
       return *(field.data() + b);
     };
-    auto get_target_word = [&](size_t p) {
+    auto get_target_word = [&](size_t p) -> uint64_t {
       if (p%64 == 0)
         return get_word(p/64) >> (p%64);
       else
@@ -139,7 +139,7 @@ struct fft_bit_fit {
     const size_t F = field.size();
     const size_t P = *max_element(pattern.begin(), pattern.end())+1;
 
-    auto start = clock();
+//    auto start = clock();
 
     const size_t poly_size = calc::upper_pow2(F+P-1);
 
@@ -151,17 +151,17 @@ struct fft_bit_fit {
     for (auto p : pattern)
       pattern_poly_rev[(poly_size-p)%poly_size] = 1;
 
-    std::cout << "  initialize arrays: " << double(clock() - start)/1000000 << "s" << std::endl;
-    start = clock();
+//    std::cout << "  initialize arrays: " << double(clock() - start)/1000000 << "s" << std::endl;
+//    start = clock();
 
     multiply_polynomial_inplace(field_poly.begin(), field_poly.end(), pattern_poly_rev.begin(), pattern_poly_rev.end());
 
-    std::cout << "  multiply polynomial: " << double(clock() - start)/1000000 << "s" << std::endl;
-    start = clock();
+//    std::cout << "  multiply polynomial: " << double(clock() - start)/1000000 << "s" << std::endl;
+//    start = clock();
 
     for (size_t i = initial_pos; i < F; i++) {
       if (size_t(field_poly[i].real()+0.1) == 0) {
-        std::cout << "  find min answer: " << double(clock() - start)/1000000 << "s" << std::endl;
+//        std::cout << "  find min answer: " << double(clock() - start)/1000000 << "s" << std::endl;
 
         return i;
       }
