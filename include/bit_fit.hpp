@@ -81,7 +81,7 @@ struct empty_link_bit_fit {
       auto front = (long long)front_it.index() - (long long)pattern[0];
       size_t k = 1;
       auto index = front + pattern[k];
-      while (k < pattern.size() and (index >= F or field[index])) {
+      while (k < pattern.size() and (index >= F or field.is_empty_at(index))) {
         index = front + pattern[++k];
       }
       if (k == pattern.size()) {

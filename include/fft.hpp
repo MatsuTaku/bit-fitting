@@ -30,52 +30,81 @@ size_t log_n(size_t x) {
 
 //using complex_t = std::complex<double>;
 
-struct complex_t {
-  double Re, Im;
-  complex_t() : Re(0), Im(0) {}
-  complex_t(double x) : Re(x), Im(0) {}
-  complex_t(double x, double y) : Re(x), Im(y) {}
+class complex_t {
+ private:
+  double re_, im_;
+ public:
+  complex_t() : re_(0), im_(0) {}
+  complex_t(double r) : re_(r), im_(0) {}
+  complex_t(double r, double i) : re_(r), im_(i) {}
+#ifdef __SSE2__
+  complex_t(__m128d ri) {
+    _mm_store_pd(&re_, ri);
+  }
+  __m128d m128d() const {
+    return _mm_load_pd(&re_);
+  }
+#endif
 
-  double real() const { return Re; }
-  double img() const { return Im; }
+  double real() const { return re_; }
+  double imag() const { return im_; }
+
+  const double* data() const { return &re_; }
+  double* data() { return &re_; }
 
   complex_t operator+(const complex_t& x) const {
-    return {Re + x.Re, Im + x.Im};
+#ifdef __SSE2__
+    return {_mm_add_pd(m128d(), x.m128d())};
+#else
+    return {re_ + x.re_, im_ + x.im_};
+#endif
   }
   complex_t& operator+=(const complex_t& x) {
-    Re += x.Re;
-    Im += x.Im;
+    *this = *this + x;
     return *this;
   }
   complex_t operator-() const {
-    return {-Re, -Im};
+    return {-re_, -im_};
   }
   complex_t operator-(const complex_t& x) const {
-    return {Re - x.Re, Im - x.Im};
+#ifdef __SSE2__
+    return {_mm_sub_pd(m128d(), x.m128d())};
+#else
+    return {re_ - x.re_, im_ - x.im_};
+#endif
   }
   complex_t& operator-=(const complex_t& x) {
     return *this += -x;
   }
   complex_t operator*(const complex_t& x) const {
-    return {Re*x.Re - Im*x.Im, Re*x.Im + Im*x.Re};
+#ifdef __SSE3__
+    const __m128d rr = _mm_load1_pd(&re_);
+    const __m128d ii = _mm_load1_pd(&im_);
+    const __m128d xy = _mm_load_pd(&x.re_);
+    const __m128d yx = _mm_set_pd(x.im_, x.re_);
+    return {_mm_addsub_pd(_mm_mul_pd(rr, xy), _mm_mul_pd(ii, yx))};
+#else
+    return {re_*x.re_ - im_*x.im_, re_*x.im_ + im_*x.re_};
+#endif
   }
   complex_t& operator*=(const complex_t& x) {
     return *this = *this * x;
   }
   complex_t operator*(double x) const {
-    return {Re*x, Im*x};
+    return {re_*x, im_*x};
   }
   complex_t& operator*=(double x) {
-    Re *= x;
-    Im *= x;
+    *this = *this * x;
     return *this;
   }
   friend complex_t operator*(double x, const complex_t& y) {
     return y * x;
   }
+  complex_t operator/(double x) const {
+    return {re_/x, im_/x};
+  }
   complex_t& operator/=(double x) {
-    Re /= x;
-    Im /= x;
+    *this = *this / x;
     return *this;
   }
 };
@@ -189,14 +218,14 @@ void _fft_avx(size_t len, size_t stride, It x_begin, It y_begin) {
   if (len == 2) {
     auto z_begin = Odd ? y_begin : x_begin;
     if (stride == 1) {
-      const __m128d a = _mm_load_pd(&x_begin->Re + 2*0);
-      const __m128d b = _mm_load_pd(&x_begin->Re + 2*1);
-      _mm_store_pd(&z_begin->Re + 2*0, _mm_add_pd(a, b));
-      _mm_store_pd(&z_begin->Re + 2*1, _mm_sub_pd(a, b));
+      const __m128d a = _mm_load_pd(x_begin->data() + 2*0);
+      const __m128d b = _mm_load_pd(x_begin->data() + 2*1);
+      _mm_store_pd(z_begin->data() + 2*0, _mm_add_pd(a, b));
+      _mm_store_pd(z_begin->data() + 2*1, _mm_sub_pd(a, b));
     } else {
       for (size_t q = 0; q < stride; q += 2) {
-        auto xd = &(x_begin+q)->Re;
-        auto zd = &(z_begin+q)->Re;
+        auto xd = (x_begin+q)->data();
+        auto zd = (z_begin+q)->data();
         const __m256d a = _mm256_load_pd(xd + 2*0);
         const __m256d b = _mm256_load_pd(xd + 2*stride);
         _mm256_store_pd(zd + 2*0, _mm256_add_pd(a, b));
@@ -219,8 +248,8 @@ void _fft_avx(size_t len, size_t stride, It x_begin, It y_begin) {
         const double sn = sin(p*theta0);
         const __m256d wp = _mm256_setr_pd(cs, sn*Sign, cs, sn*Sign);
         for (size_t q = 0; q < stride; q += 2) {
-          auto xd = &(x_begin + q)->Re;
-          auto yd = &(y_begin + q)->Re;
+          auto xd = (x_begin + q)->data();
+          auto yd = (y_begin + q)->data();
           const __m256d a = _mm256_load_pd(xd + 2*stride*(p + 0));
           const __m256d b = _mm256_load_pd(xd + 2*stride*(p + m));
           _mm256_store_pd(yd + 2*stride*(2*p + 0), _mm256_add_pd(a, b));
@@ -279,7 +308,7 @@ void fft(polynomial_vector& vec) {
 }
 
 template <typename It>
-void inverse_fft(It vec_begin, It vec_end, It aux_begin, It aux_end) {
+void ifft(It vec_begin, It vec_end, It aux_begin, It aux_end) {
   auto len = vec_end - vec_begin;
   assert(bo::popcnt_u64(len) == 1);
   assert(aux_end - aux_begin == len);
@@ -289,17 +318,17 @@ void inverse_fft(It vec_begin, It vec_end, It aux_begin, It aux_end) {
 }
 
 template <typename It>
-void inverse_fft(It vec_begin, It vec_end) {
+void ifft(It vec_begin, It vec_end) {
   auto len = vec_end - vec_begin;
   assert(bo::popcnt_u64(len) == 1);
   polynomial_vector aux(len, 0);
-  inverse_fft(vec_begin, vec_end, aux.begin(), aux.end());
+  ifft(vec_begin, vec_end, aux.begin(), aux.end());
 }
 
-void inverse_fft(polynomial_vector& vec) {
+void ifft(polynomial_vector& vec) {
   auto len = calc::upper_pow2(vec.size());
   vec.resize(len, 0);
-  inverse_fft(vec.begin(), vec.end());
+  ifft(vec.begin(), vec.end());
 }
 
 
@@ -311,7 +340,7 @@ void multiply_polynomial(It g_begin, It g_end, It h_begin, It h_end, It f_begin,
   for (size_t i = 0 ; i < len; i++) {
     *(f_begin+i) = *(g_begin+i) * *(h_begin+i);
   }
-  inverse_fft(f_begin, f_end);
+  ifft(f_begin, f_end);
 }
 
 void multiply_polynomial(polynomial_vector& g, polynomial_vector& h, polynomial_vector& f) {
@@ -330,7 +359,7 @@ void multiply_polynomial_inplace(It g_begin, It g_end, It h_begin, It h_end) {
   auto len = g_end - g_begin;
   for (auto git = g_begin, hit = h_begin; git != g_end; ++git, ++hit)
     *git *= *hit;
-  inverse_fft(g_begin, g_end);
+  ifft(g_begin, g_end);
 }
 
 void multiply_polynomial_inplace(polynomial_vector& g, polynomial_vector& h) {

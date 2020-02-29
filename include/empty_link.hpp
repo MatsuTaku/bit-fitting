@@ -82,13 +82,14 @@ class empty_linked_bit_vector {
   bool operator[](size_t index) const { return (*bf_)[index]; }
   auto operator[](size_t index) { return (*bf_)[index]; }
 
+  bool is_empty_at(size_t index) const { return operator[](index) == EmptyBit; }
+
   const_iterator el_begin() const { return const_iterator(elv_.data(), front_); }
   const_iterator el_end() const { return el_begin(); }
 
   template <class Container>
   void multiple_set(const Container& indexes, bool bit) {
     for (auto i : indexes) {
-      operator[](i) = bit;
       if (bit == EmptyBit) {
         push(i);
       } else {
@@ -98,6 +99,7 @@ class empty_linked_bit_vector {
   }
 
   void push(size_t index) {
+    operator[](index) = EmptyBit;
     auto& unit = elv_[index];
     if (front_ == kDisabledFront) {
       front_ = index;
@@ -114,6 +116,7 @@ class empty_linked_bit_vector {
   }
 
   void pop(size_t index) {
+    operator[](index) = !EmptyBit;
     auto& unit = elv_[index];
     auto succ_i = unit.succ;
     if (index == front_) {
