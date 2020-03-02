@@ -17,7 +17,9 @@ find_package(Boost REQUIRED)
 target_include_directories(bit-fitting INTERFACE Boost_INCLUDE_DIR)
 target_link_libraries(bit-fitting INTERFACE libbo sim_ds)
 
-target_compile_options(bit-fitting INTERFACE -march=native)
-
 add_executable(bench bench.cpp)
 target_link_libraries(bench bit-fitting)
+
+add_executable(bench-simd bench.cpp)
+target_link_libraries(bench-simd bit-fitting)
+target_compile_options(bench-simd PRIVATE -march=native)
