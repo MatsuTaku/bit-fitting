@@ -11,18 +11,18 @@ namespace {
 
 constexpr size_t kNumTests = 10;
 constexpr size_t kNumAlgorithms = 4;
-const std::string algorithm_names[] = {
-    "Brute-force",
-    "Empty-link",
-    "Bit-parallel",
-    "FFT-convolution",
+const std::array<std::string, kNumAlgorithms> algorithm_names = {
+	"Brute-force",
+	"Empty-link",
+	"Bit-parallel",
+	"FFT-convolution",
 };
 using bit_fitter_tuple = std::tuple<
-    bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>,
+	bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>,
 	bit_fitting::bit_fit<bit_fitting::empty_link_bit_fit>,
 	bit_fitting::bit_fit<bit_fitting::bit_parallel_bit_fit>,
 	bit_fitting::bit_fit<bit_fitting::fft_bit_fit>
-    >;
+>;
 bit_fitter_tuple bit_fitters;
 
 const size_t log_n = 24;
@@ -38,12 +38,12 @@ uint64_t random_ll() {
 
 void show_pattern(const std::vector<size_t>& pattern) {
   for (int i = 0, j = 0; i <= pattern.back(); i++) {
-    if (i < pattern[j]) {
-      std::cout << 0;
-    } else {
-      std::cout << 1;
-      j++;
-    }
+	if (i < pattern[j]) {
+	  std::cout << 0;
+	} else {
+	  std::cout << 1;
+	  j++;
+	}
   }
   std::cout << std::endl;
 }
@@ -76,14 +76,14 @@ bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_
   for (size_t i = 0; i < F-P; i++) {
 	if (i == x)
 	  continue;
-    bool should_guard = true;
-    for (auto p : pieces) {
-      should_guard &= field[i + p];
-      if (not should_guard)
-        break;
-    }
-    if (not should_guard)
-      continue;
+	bool should_guard = true;
+	for (auto p : pieces) {
+	  should_guard &= field[i + p];
+	  if (not should_guard)
+		break;
+	}
+	if (not should_guard)
+	  continue;
 	size_t target = i + pieces[random_ll()%pieces.size()];
 	while (p_set.count(target) == 1)
 	  target = i + pieces[random_ll()%pieces.size()];
@@ -102,19 +102,19 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 	volatile double t = 0;
 	{
 	  auto f = std::get<0>(bit_fitters).field(&field);
-      t = time_us_in([&]{ ans = std::get<0>(bit_fitters).find(f, pattern); });
+	  t = time_us_in([&]{ ans = std::get<0>(bit_fitters).find(f, pattern); });
 	}
 	{
 	  auto f = std::get<1>(bit_fitters).field(&field);
-      t = time_us_in([&]{ base = std::get<1>(bit_fitters).find(f, pattern); });
+	  t = time_us_in([&]{ base = std::get<1>(bit_fitters).find(f, pattern); });
 	}
 	{
 	  auto f = std::get<2>(bit_fitters).field(&field);
-      t = time_us_in([&]{ base = std::get<2>(bit_fitters).find(f, pattern); });
+	  t = time_us_in([&]{ base = std::get<2>(bit_fitters).find(f, pattern); });
 	}
 	{
 	  auto f = std::get<3>(bit_fitters).field(&field);
-      t = time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); });
+	  t = time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); });
 	}
   }
   for (int i = 0; i < kNumTests; i++) {
@@ -131,7 +131,7 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 	}
 	{
 	  auto f = std::get<2>(bit_fitters).field(&field);
-	  time_sum[2] += time_us_in([&]{ base = std::get<2>(bit_fitters).find(f, pattern); });
+	  time_sum[2] += time_us_in([&] { base = std::get<2>(bit_fitters).find(f, pattern); });
 	}
 	{
 	  auto f = std::get<3>(bit_fitters).field(&field);
@@ -139,11 +139,6 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 	}
   }
 
-//  std::cout << "---------" << std::endl
-//  << "N: " << field_size << "\tM: " << alphabet_size << "\trate: 1/" << inv_exist_rate << std::endl;
-//  for (int i = 0; i < kNumAlgorithms; i++) {
-//    std::cout << algorithm_names[i] << ":\t in " << time_sum[i]/kNumTests/1000000 << " sec" << std::endl;
-//  }
   for (auto& sum : time_sum) sum /= kNumTests;
   return time_sum;
 }
