@@ -12,11 +12,11 @@ namespace {
 constexpr size_t kNumTests = 10;
 constexpr size_t kNumAlgorithms = 5;
 const std::array<std::string, kNumAlgorithms> algorithm_names = {
-	"Brute force",
-	"Empty link",
-	"Bit parallel",
-	"Convolution FFT",
-	"Convolution NTT",
+	"Brute-force",
+	"Empty-link",
+	"Bit-parallel",
+	"Convolution-FFT",
+	"Convolution-NTT",
 };
 using bit_fitter_tuple = std::tuple<
 	bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>,
@@ -26,6 +26,9 @@ using bit_fitter_tuple = std::tuple<
 	bit_fitting::bit_fit<bit_fitting::convolution_ntt_bit_fit>
 >;
 bit_fitter_tuple bit_fitters;
+
+const size_t log_n = 24;
+const size_t occurence_rate_inv = 4;
 
 std::random_device rd;
 std::mt19937_64 eng(rd());
@@ -91,7 +94,7 @@ bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_
   return field;
 }
 
-void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rate) {
+std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rate) {
   std::array<double, kNumAlgorithms> time_sum = {};
   volatile long long base = 0;
   { // warm up
@@ -146,20 +149,28 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
 	}
   }
 
-  std::cout << "---------" << std::endl
-			<< "N: " << field_size << "\tM: " << alphabet_size << "\trate: 1/" << inv_exist_rate << std::endl;
-  for (int i = 0; i < kNumAlgorithms; i++) {
-	std::cout << algorithm_names[i] << ":\t in " << time_sum[i]/kNumTests/1000000 << " sec" << std::endl;
-  }
+  for (auto& sum : time_sum) sum /= kNumTests;
+  return time_sum;
 }
 
 }
 
 int main() {
   std::cout << "Test various bit-fit algorithm" << std::endl;
-  size_t log_n = 24;
+  std::cout << "N: " << (1<<log_n) << std::endl;
+  std::cout << "Occurence rate: " << "1/" << occurence_rate_inv << std::endl;
+  std::cout << "---------------------------------------------------------------------" << std::endl;
+  std::cout << "       \t";
+  for (auto name : algorithm_names)
+    std::cout << name << '\t' ;
+  std::cout << std::endl;
   for (size_t log_m = 4; log_m < log_n; log_m+=2) {
-	benchmark_all(1 << log_n, 1 << log_m, 4);
+	auto times = benchmark_all(1 << log_n, 1 << log_m, occurence_rate_inv);
+	std::cout<< (1<<log_m) << '\t' ;
+	for (auto time : times) {
+	  std::cout<< time/1000000 << '\t' ;
+	}
+	std::cout << std::endl;
   }
 
 //  test({1,1,1,0,1,0,1,1,1,0,0,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1},
