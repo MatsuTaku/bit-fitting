@@ -22,7 +22,7 @@ class convolution {
 	auto th = transformer_.transform(h);
 	for (size_t i = 0; i < tg.size(); i++)
 	  tg[i] *= th[i];
-	transformer_.inplace_transform(tg);
+	transformer_.inplace_inverse_transform(tg);
 	return tg;
   }
 
