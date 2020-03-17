@@ -39,7 +39,7 @@ constexpr std::array<ntt_prime_tuple, 18> kNttPrimes = {
 	ntt_prime_tuple{469762049, 3, 26},  // 2^26 * 7 + 1
 };
 
-constexpr ntt_prime_tuple get_ntt_prime_id(size_t size) {
+ntt_prime_tuple get_ntt_prime_id(size_t size) {
   if (size == 0)
     return kNttPrimes[0];
   auto ctz = 64-bo::clz_u64(size-1);
