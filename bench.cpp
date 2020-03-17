@@ -10,18 +10,20 @@
 namespace {
 
 constexpr size_t kNumTests = 10;
-constexpr size_t kNumAlgorithms = 4;
+constexpr size_t kNumAlgorithms = 5;
 const std::array<std::string, kNumAlgorithms> algorithm_names = {
 	"Brute force",
 	"Empty link",
 	"Bit parallel",
-	"FFT convolution",
+	"Convolution FFT",
+	"Convolution NTT",
 };
 using bit_fitter_tuple = std::tuple<
 	bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>,
 	bit_fitting::bit_fit<bit_fitting::empty_link_bit_fit>,
 	bit_fitting::bit_fit<bit_fitting::bit_parallel_bit_fit>,
-	bit_fitting::bit_fit<bit_fitting::fft_bit_fit>
+	bit_fitting::bit_fit<bit_fitting::convolution_fft_bit_fit>,
+	bit_fitting::bit_fit<bit_fitting::convolution_ntt_bit_fit>
 >;
 bit_fitter_tuple bit_fitters;
 
@@ -93,13 +95,13 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
   std::array<double, kNumAlgorithms> time_sum = {};
   volatile long long base = 0;
   { // warm up
-	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
-	auto ans = random_ll()%field_size;
+	const auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
+	const auto ans = random_ll()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
 	volatile double t = 0;
 	{
 	  auto f = std::get<0>(bit_fitters).field(&field);
-	  t = time_us_in([&]{ ans = std::get<0>(bit_fitters).find(f, pattern); });
+	  t = time_us_in([&]{ base = std::get<0>(bit_fitters).find(f, pattern); });
 	}
 	{
 	  auto f = std::get<1>(bit_fitters).field(&field);
@@ -112,6 +114,10 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
 	{
 	  auto f = std::get<3>(bit_fitters).field(&field);
 	  t = time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); });
+	}
+	{
+	  auto f = std::get<4>(bit_fitters).field(&field);
+	  t = time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); });
 	}
   }
   for (int i = 0; i < kNumTests; i++) {
@@ -133,6 +139,10 @@ void benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rat
 	{
 	  auto f = std::get<3>(bit_fitters).field(&field);
 	  time_sum[3] += time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); });
+	}
+	{
+	  auto f = std::get<4>(bit_fitters).field(&field);
+	  time_sum[4] += time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); });
 	}
   }
 

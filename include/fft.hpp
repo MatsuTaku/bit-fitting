@@ -279,7 +279,7 @@ void _eightstep_fft(size_t log_n, It x_begin, It y_begin) {
 #endif
 }
 
-using polynomial_vector = std::vector<complex_t, boost::alignment::aligned_allocator<complex_t, 32>>;
+using complex_vector = std::vector<complex_t, boost::alignment::aligned_allocator<complex_t, 32>>;
 
 
 template <long long Sign=-1, typename It>
@@ -303,7 +303,7 @@ void fft(It vec_begin, It vec_end) {
   auto len = vec_end - vec_begin;
   assert(bo::popcnt_u64(len) == 1);
 #ifdef CUSTOM_FFT
-  polynomial_vector aux(len, {0,0});
+  complex_vector aux(len, {0,0});
   fft(vec_begin, vec_end, aux.begin(), aux.end());
 #else
   fftw_plan plan = fftw_plan_dft_1d(len, reinterpret_cast<fftw_complex*>(&*vec_begin), reinterpret_cast<fftw_complex*>(&*vec_begin), FFTW_FORWARD, FFTW_ESTIMATE);
@@ -312,7 +312,7 @@ void fft(It vec_begin, It vec_end) {
 #endif
 }
 
-void fft(polynomial_vector& vec) {
+void fft(complex_vector& vec) {
   auto len = calc::upper_pow2(vec.size());
   vec.resize(len, {0,0});
   fft(vec.begin(), vec.end());
@@ -343,7 +343,7 @@ void ifft(It vec_begin, It vec_end) {
   assert(bo::popcnt_u64(len) == 1);
 
 #ifdef CUSTOM_FFT
-  polynomial_vector aux(len, {0,0});
+  complex_vector aux(len, {0,0});
   ifft(vec_begin, vec_end, aux.begin(), aux.end());
 #else
   fftw_plan plan = fftw_plan_dft_1d(len, reinterpret_cast<fftw_complex*>(&*vec_begin), reinterpret_cast<fftw_complex*>(&*vec_begin), FFTW_BACKWARD, FFTW_ESTIMATE);
@@ -352,7 +352,7 @@ void ifft(It vec_begin, It vec_end) {
 #endif
 }
 
-void ifft(polynomial_vector& vec) {
+void ifft(complex_vector& vec) {
   auto len = calc::upper_pow2(vec.size());
   vec.resize(len, {0,0});
   ifft(vec.begin(), vec.end());
@@ -377,7 +377,7 @@ void multiply_polynomial(It g_begin, It g_end, It h_begin, It h_end, It f_begin,
   ifft(f_begin, f_end);
 }
 
-void multiply_polynomial(polynomial_vector& g, polynomial_vector& h, polynomial_vector& f) {
+void multiply_polynomial(complex_vector& g, complex_vector& h, complex_vector& f) {
   auto len = calc::upper_pow2(g.size()+h.size()-1);
   g.resize(len, {0,0});
   h.resize(len, {0,0});
@@ -386,7 +386,7 @@ void multiply_polynomial(polynomial_vector& g, polynomial_vector& h, polynomial_
 }
 
 
-void multiply_polynomial_inplace(polynomial_vector& g, polynomial_vector& h) {
+void multiply_polynomial_inplace(complex_vector& g, complex_vector& h) {
   auto len = calc::upper_pow2(g.size()+h.size()-1);
   g.resize(len, {0,0});
   h.resize(len, {0,0});
@@ -394,8 +394,8 @@ void multiply_polynomial_inplace(polynomial_vector& g, polynomial_vector& h) {
 }
 
 
-//class Polynomial : public polynomial_vector {
-//  using _base = polynomial_vector;
+//class Polynomial : public complex_vector {
+//  using _base = complex_vector;
 // public:
 //  using base_type = _base;
 //
@@ -428,7 +428,7 @@ void multiply_polynomial_inplace(polynomial_vector& g, polynomial_vector& h) {
 //class BinaryObservingDft {
 // private:
 //  sim_ds::BitVector* bv_;
-//  polynomial_vector dft_;
+//  complex_vector dft_;
 //  size_t dft_size_ = 0;
 //
 // public:
@@ -460,10 +460,10 @@ void multiply_polynomial_inplace(polynomial_vector& g, polynomial_vector& h) {
 //    }
 //  }
 //
-//  const polynomial_vector& dft() const {
+//  const complex_vector& dft() const {
 //    return dft_;
 //  }
-//  polynomial_vector& dft() {
+//  complex_vector& dft() {
 //    return dft_;
 //  }
 //

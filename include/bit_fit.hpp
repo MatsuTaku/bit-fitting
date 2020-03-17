@@ -8,6 +8,7 @@
 
 #include "bit_field.hpp"
 #include "empty_link.hpp"
+#include "convolution.hpp"
 #include "fft.hpp"
 
 namespace bit_fitting {
@@ -130,7 +131,7 @@ struct bit_parallel_bit_fit {
 };
 
 
-struct fft_bit_fit {
+struct convolution_fft_bit_fit {
   using field_type = default_bit_field;
   using traits = bit_fit_traits<field_type>;
 
@@ -143,12 +144,12 @@ struct fft_bit_fit {
 
     const size_t poly_size = calc::upper_pow2(F+P-1);
 
-	polynomial_vector field_poly(poly_size, {0,0});
+	complex_vector field_poly(poly_size, {0, 0});
     for (size_t i = 0; i < F; i++) {
 	  field_poly[i] = field[i] ? 0 : 1;
     }
 
-    polynomial_vector pattern_poly_rev(poly_size, {0,0});
+    complex_vector pattern_poly_rev(poly_size, {0, 0});
     for (auto p : pattern)
       pattern_poly_rev[(poly_size-p)%poly_size] = 1;
 
@@ -169,6 +170,53 @@ struct fft_bit_fit {
     }
 
     return F;
+  }
+
+};
+
+
+struct convolution_ntt_bit_fit {
+  using field_type = default_bit_field;
+  using traits = bit_fit_traits<field_type>;
+  using convolution_class = convolution<Ntt<>>;
+  using polynomial_type = convolution_class::polynomial_type;
+
+  template <typename T>
+  size_t operator()(const field_type& field, const std::vector<T>& pattern, size_t initial_pos) const {
+	const size_t F = field.size();
+	const size_t P = *max_element(pattern.begin(), pattern.end())+1;
+
+//    auto start = clock();
+
+	const size_t poly_size = calc::upper_pow2(F+P-1);
+
+	polynomial_type field_poly(poly_size);
+	for (size_t i = 0; i < F; i++) {
+	  field_poly[i] = field[i] ? 0 : 1;
+	}
+
+	polynomial_type pattern_poly_rev(poly_size);
+	for (auto p : pattern)
+	  pattern_poly_rev[(poly_size-p)%poly_size] = 1;
+
+//    std::cout << "  initialize arrays: " << double(clock() - start)/1000000 << "s" << std::endl;
+//    start = clock();
+
+	convolution_class convolution(poly_size);
+	auto convoluted = convolution(field_poly, pattern_poly_rev);
+
+//    std::cout << "  multiply polynomial: " << double(clock() - start)/1000000 << "s" << std::endl;
+//    start = clock();
+
+	for (size_t i = initial_pos; i < F; i++) {
+	  if (convoluted[i] == 0) {
+//        std::cout << "  find min answer: " << double(clock() - start)/1000000 << "s" << std::endl;
+
+		return i;
+	  }
+	}
+
+	return F;
   }
 
 };
