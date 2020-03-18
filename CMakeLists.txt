@@ -9,6 +9,8 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+add_compile_definitions(CUSTOM_FFT)
+
 add_library(bit-fitting INTERFACE)
 target_include_directories(bit-fitting INTERFACE include)
 add_subdirectory(libbo EXCLUDE_FROM_ALL)

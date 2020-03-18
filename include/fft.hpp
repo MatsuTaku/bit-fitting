@@ -343,12 +343,26 @@ void ifft(It vec_begin, It vec_end) {
   assert(bo::popcnt_u64(len) == 1);
 
 #ifdef CUSTOM_FFT
+
   complex_vector aux(len, {0,0});
   ifft(vec_begin, vec_end, aux.begin(), aux.end());
+
 #else
+
   fftw_plan plan = fftw_plan_dft_1d(len, reinterpret_cast<fftw_complex*>(&*vec_begin), reinterpret_cast<fftw_complex*>(&*vec_begin), FFTW_BACKWARD, FFTW_ESTIMATE);
+#ifdef __AVX__
+  const auto ll = _mm256_set1_pd((double)len);
+  for (auto it = vec_begin; it != vec_end; it+=2) {
+    const auto ab = _mm256_load_pd(reinterpret_cast<double*>(&*it));
+    _mm256_store_pd(reinterpret_cast<double*>(&*it), _mm256_div_pd(ab, ll));
+  }
+#else
+  for (auto it = vec_begin; it != vec_end; ++it)
+	*it /= len;
+#endif
   fftw_execute(plan);
   fftw_destroy_plan(plan);
+
 #endif
 }
 
@@ -394,90 +408,40 @@ void multiply_polynomial_inplace(complex_vector& g, complex_vector& h) {
 }
 
 
-//class Polynomial : public complex_vector {
-//  using _base = complex_vector;
-// public:
-//  using base_type = _base;
-//
-//  Polynomial() = default;
-//
-//  explicit Polynomial(base_type&& vec) : _base(std::move(vec)) {}
-//
-//  explicit Polynomial(size_t size) : _base(size, 0) {}
-//  explicit Polynomial(size_t size, complex_t initial_val) : _base(size, initial_val) {}
-//
-//  Polynomial operator*(const Polynomial& x) const {
-//    base_type g = (_base&)*this;
-//    base_type h = (_base&)x;
-//    multiply_polynomial_inplace(g, h);
-//    return Polynomial(std::move(g));
-//  }
-//
-//  Polynomial& operator*=(Polynomial& x) {
-//    multiply_polynomial_inplace((_base&)*this, (_base&)x);
-//    return *this;
-//  }
-//
-//  Polynomial& operator*=(const Polynomial& x) {
-//    auto h = x;
-//    return *this *= x;
-//  }
-//};
+class Fft {
+ public:
+  using polynomial_type = complex_vector;
+ private:
+  size_t n_;
 
+ public:
+  Fft(size_t n) : n_(n) {}
 
-//class BinaryObservingDft {
-// private:
-//  sim_ds::BitVector* bv_;
-//  complex_vector dft_;
-//  size_t dft_size_ = 0;
-//
-// public:
-//  BinaryObservingDft(sim_ds::BitVector* bv) : bv_(bv) {
-//    dft_size_ = calc::upper_pow2(bv->size());
-//    dft_.resize(dft_size_, 0);
-//  }
-//
-//  void resize(size_t size) {
-//    if (size > dft_size_) {
-//      dft_size_ = size;
-//      bv_->resize(dft_size_, 1);
-//      for (size_t i = 0; i < size; i++) {
-//        dft_[i] = (int)!(*bv_)[i];
-//      }
-//      fft(dft_);
-//    }
-//  }
-//
-//  void update(size_t i, bool bit) {
-//    if (bit == (*bv_)[i])
-//      return;
-//    double diff = (int)bit - (int)(*bv_)[i];
-//    (*bv_)[i] = bit;
-//    double theta0 = M_PI*2/dft_size_;
-//    for (size_t p = 0; p < dft_size_; p++) {
-//      complex_t wp = {cos((i*p%dft_size_)*theta0), -sin((i*p%dft_size_)*theta0)};
-//      dft_[p] += wp * diff;
-//    }
-//  }
-//
-//  const complex_vector& dft() const {
-//    return dft_;
-//  }
-//  complex_vector& dft() {
-//    return dft_;
-//  }
-//
-//  void fit_pattern(size_t front, const std::vector<size_t>& pattern) {
-//    if (pattern.size() < calc::log_n(dft_size_)) {
-//      for (auto p : pattern) {
-//        update(front + p, 0);
-//      }
-//    } else {
-//
-//    }
-//  }
-//
-//};
+  size_t n() const { return n_; }
+
+  polynomial_type transform(const polynomial_type& f) const {
+	polynomial_type ff(n_);
+	std::copy(f.begin(), f.end(), ff.begin());
+	fft(ff.begin(), ff.end());
+	return ff;
+  }
+
+  void inplace_transform(polynomial_type& f) const {
+	fft(f.begin(), f.end());
+  }
+
+  polynomial_type inverse_transform(const polynomial_type& f) const {
+	polynomial_type ff(n_);
+	std::copy(f.begin(), f.end(), ff.begin());
+	ifft(ff.begin(), ff.end());
+	return ff;
+  }
+
+  void inplace_inverse_transform(polynomial_type& f) const {
+	ifft(f.begin(), f.end());
+  }
+
+};
 
 }
 

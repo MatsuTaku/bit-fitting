@@ -3,13 +3,11 @@
 #include <vector>
 #include <unordered_set>
 
-#include "sim_ds/BitVector.hpp"
-
 #include "bit_fit.hpp"
 
 namespace {
 
-constexpr size_t kNumTests = 10;
+constexpr size_t kNumTests = 8;
 constexpr size_t kNumAlgorithms = 5;
 const std::array<std::string, kNumAlgorithms> algorithm_names = {
 	"Brute-force",
@@ -129,23 +127,23 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
 	{
 	  auto f = std::get<0>(bit_fitters).field(&field);
-	  time_sum[0] += time_us_in([&]{ base = std::get<0>(bit_fitters).find(f, pattern); });
+	  time_sum[0] += time_us_in([&]{ base = std::get<0>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl;});
 	}
 	{
 	  auto f = std::get<1>(bit_fitters).field(&field);
-	  time_sum[1] += time_us_in([&]{ base = std::get<1>(bit_fitters).find(f, pattern); });
+	  time_sum[1] += time_us_in([&]{ base = std::get<1>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
 	}
 	{
 	  auto f = std::get<2>(bit_fitters).field(&field);
-	  time_sum[2] += time_us_in([&] { base = std::get<2>(bit_fitters).find(f, pattern); });
+	  time_sum[2] += time_us_in([&] { base = std::get<2>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
 	}
 	{
 	  auto f = std::get<3>(bit_fitters).field(&field);
-	  time_sum[3] += time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); });
+	  time_sum[3] += time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
 	}
 	{
 	  auto f = std::get<4>(bit_fitters).field(&field);
-	  time_sum[4] += time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); });
+	  time_sum[4] += time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
 	}
   }
 
@@ -156,6 +154,29 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 }
 
 int main() {
+  {
+	using fft = bit_fitting::Fft;
+	using convolution = bit_fitting::convolution<fft>;
+	using polynomial = convolution::polynomial_type;
+	polynomial t = {1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0};
+	polynomial p = {1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1};
+	auto tp = convolution(15)(t,p);
+	for (auto v : tp)
+	  std::cout << (long long)(v.real()+0.125) << " ";
+	std::cout << std::endl;
+  }
+  {
+	using ntt = bit_fitting::Ntt<>;
+	using convolution = bit_fitting::convolution<ntt>;
+	using polynomial = convolution::polynomial_type;
+	polynomial t = {1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0};
+	polynomial p = {1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1};
+	auto tp = convolution(15)(t,p);
+	for (auto v : tp)
+	  std::cout << v << " ";
+	std::cout << std::endl;
+  }
+
   std::cout << "Test various bit-fit algorithm" << std::endl;
   std::cout << "N: " << (1<<log_n) << std::endl;
   std::cout << "Occurence rate: " << "1/" << occurence_rate_inv << std::endl;
@@ -164,7 +185,7 @@ int main() {
   for (auto name : algorithm_names)
     std::cout << name << '\t' ;
   std::cout << std::endl;
-  for (size_t log_m = 4; log_m < log_n; log_m+=2) {
+  for (size_t log_m = 2; log_m < log_n; log_m+=1) {
 	auto times = benchmark_all(1 << log_n, 1 << log_m, occurence_rate_inv);
 	std::cout<< (1<<log_m) << '\t' ;
 	for (auto time : times) {

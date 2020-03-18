@@ -1,6 +1,8 @@
 #ifndef BIT_FITTING_INCLUDE_CONVOLUTION_HPP_
 #define BIT_FITTING_INCLUDE_CONVOLUTION_HPP_
 
+#include "bo.hpp"
+
 #include "fft.hpp"
 #include "ntt.hpp"
 
@@ -16,6 +18,8 @@ class convolution {
 
  public:
   convolution(size_t size) : transformer_(1ull<<(64-bo::clz_u64(size-1))) {}
+
+  size_t n() const { return transformer_.n(); }
 
   polynomial_type operator()(const polynomial_type& g, const polynomial_type& h) const {
     auto tg = transformer_.transform(g);
