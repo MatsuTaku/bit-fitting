@@ -55,18 +55,18 @@ class Ntt {
   using polynomial_type = std::vector<modint_type>;
 
  private:
-  size_t size_;
+  size_t n_;
   size_t log_n_;
   std::vector<modint_type> zeta_;
   std::vector<modint_type> izeta_;
 
  public:
-  Ntt(size_t size) : size_(size) {
-	assert((size&(-size)) == size);
-	log_n_ = 64-bo::clz_u64(size-1);
+  Ntt(size_t n) : n_(n) {
+	assert((n&(-n)) == n);
+	log_n_ = 64-bo::clz_u64(n-1);
 	assert(bo::ctz_u64(Mod-1) >= log_n_);
 	modint_type w = pow(modint_type{PrimitiveRoot}, (Mod-1)>>log_n_);
-	assert(pow(w, size) == 1);
+	assert(pow(w, n) == 1);
 
 	zeta_.resize(log_n_);
 	izeta_.resize(log_n_);
@@ -80,9 +80,11 @@ class Ntt {
 	}
   }
 
+  size_t n() const { return n_; }
+
   polynomial_type transform(const polynomial_type& f) const {
 	auto ff = f;
-	ff.resize(size_, 0);
+	ff.resize(n_, 0);
 	_transform(ff);
 	return ff;
   }
@@ -93,7 +95,7 @@ class Ntt {
 
   polynomial_type inverse_transform(const polynomial_type& f) const {
 	auto ff = f;
-	ff.resize(size_, 0);
+	ff.resize(n_, 0);
 	_inverse_transform(ff);
 	return ff;
   }
@@ -116,7 +118,7 @@ class Ntt {
   template <bool Forward>
   void _transform_impl(polynomial_type& f) const {
     // Iterative bitreverse
-    for (size_t i = 0; i < size_; i++) {
+    for (size_t i = 0; i < n_; i++) {
       auto j = bitreverse(i);
       if (i >= j)
         continue;
@@ -125,14 +127,15 @@ class Ntt {
     // Cooly-Tukey Algorithm
     for (size_t log_m = 0; log_m < log_n_; log_m++) {
       auto m = 1ull<<log_m;
-      for (size_t chank = 0; chank < size_; chank += 2*m) {
-        modint_type w = 1;
+      auto zeta = Forward ? zeta_[log_m] : izeta_[log_m];
+      for (size_t chunk = 0; chunk < n_; chunk += 2*m) {
+        modint_type pow_zeta = 1;
         for (size_t i = 0; i < m; i++) {
-          auto a = f[chank + i + 0];
-          auto b = f[chank + i + m] * w;
-          f[chank + i + 0] = a + b;
-          f[chank + i + m] = a - b;
-          w *= Forward ? zeta_[log_m] : izeta_[log_m];
+          auto a = f[chunk + i + 0];
+          auto b = f[chunk + i + m] * pow_zeta;
+          f[chunk + i + 0] = a + b;
+          f[chunk + i + m] = a - b;
+          pow_zeta *= zeta;
         }
       }
     }
@@ -144,8 +147,9 @@ class Ntt {
 
   void _inverse_transform(polynomial_type& f) const {
 	_transform_impl<false>(f);
+	modint_type inv_n = modint_type{1}/n_;
 	for (auto& x : f)
-	  x /= size_;
+	  x *= inv_n;
   }
 
 };
