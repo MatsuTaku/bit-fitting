@@ -8,19 +8,19 @@
 namespace {
 
 constexpr size_t kNumTests = 8;
-constexpr size_t kNumAlgorithms = 5;
+constexpr size_t kNumAlgorithms = 4;
 const std::array<std::string, kNumAlgorithms> algorithm_names = {
 	"Brute-force",
 	"Empty-link",
 	"Bit-parallel",
-	"Convolution-FFT",
+//	"Convolution-FFT",
 	"Convolution-NTT",
 };
 using bit_fitter_tuple = std::tuple<
 	bit_fitting::bit_fit<bit_fitting::brute_force_bit_fit>,
 	bit_fitting::bit_fit<bit_fitting::empty_link_bit_fit>,
 	bit_fitting::bit_fit<bit_fitting::bit_parallel_bit_fit>,
-	bit_fitting::bit_fit<bit_fitting::convolution_fft_bit_fit>,
+//	bit_fitting::bit_fit<bit_fitting::convolution_fft_bit_fit>,
 	bit_fitting::bit_fit<bit_fitting::convolution_ntt_bit_fit>
 >;
 bit_fitter_tuple bit_fitters;
@@ -116,10 +116,10 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 	  auto f = std::get<3>(bit_fitters).field(&field);
 	  t = time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); });
 	}
-	{
-	  auto f = std::get<4>(bit_fitters).field(&field);
-	  t = time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); });
-	}
+//	{
+//	  auto f = std::get<4>(bit_fitters).field(&field);
+//	  t = time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); });
+//	}
   }
   for (int i = 0; i < kNumTests; i++) {
 	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
@@ -141,10 +141,10 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 	  auto f = std::get<3>(bit_fitters).field(&field);
 	  time_sum[3] += time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
 	}
-	{
-	  auto f = std::get<4>(bit_fitters).field(&field);
-	  time_sum[4] += time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
-	}
+//	{
+//	  auto f = std::get<4>(bit_fitters).field(&field);
+//	  time_sum[4] += time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
+//	}
   }
 
   for (auto& sum : time_sum) sum /= kNumTests;
