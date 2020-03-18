@@ -7,6 +7,8 @@
 
 namespace {
 
+constexpr bool kShowBase = false;
+
 constexpr size_t kNumTests = 8;
 constexpr size_t kNumAlgorithms = 4;
 const std::array<std::string, kNumAlgorithms> algorithm_names = {
@@ -127,23 +129,43 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
 	{
 	  auto f = std::get<0>(bit_fitters).field(&field);
-	  time_sum[0] += time_us_in([&]{ base = std::get<0>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl;});
+	  time_sum[0] += time_us_in([&]{
+	    base = std::get<0>(bit_fitters).find(f, pattern);
+	    if (kShowBase)
+	    	std::cerr<<base<<std::endl;
+	  });
 	}
 	{
 	  auto f = std::get<1>(bit_fitters).field(&field);
-	  time_sum[1] += time_us_in([&]{ base = std::get<1>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
+	  time_sum[1] += time_us_in([&]{
+	    base = std::get<1>(bit_fitters).find(f, pattern);
+		if (kShowBase)
+		  std::cerr<<base<<std::endl;
+	  });
 	}
 	{
 	  auto f = std::get<2>(bit_fitters).field(&field);
-	  time_sum[2] += time_us_in([&] { base = std::get<2>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
+	  time_sum[2] += time_us_in([&] {
+	    base = std::get<2>(bit_fitters).find(f, pattern);
+		if (kShowBase)
+		  std::cerr<<base<<std::endl;
+	  });
 	}
 	{
 	  auto f = std::get<3>(bit_fitters).field(&field);
-	  time_sum[3] += time_us_in([&]{ base = std::get<3>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
+	  time_sum[3] += time_us_in([&]{
+	    base = std::get<3>(bit_fitters).find(f, pattern);
+		if (kShowBase)
+		  std::cerr<<base<<std::endl;
+	  });
 	}
 //	{
 //	  auto f = std::get<4>(bit_fitters).field(&field);
-//	  time_sum[4] += time_us_in([&]{ base = std::get<4>(bit_fitters).find(f, pattern); std::cerr<<base<<std::endl; });
+//	  time_sum[4] += time_us_in([&]{
+//	  base = std::get<4>(bit_fitters).find(f, pattern);
+//	if (kShowBase)
+//	  std::cerr<<base<<std::endl;
+//	  });
 //	}
   }
 
