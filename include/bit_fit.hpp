@@ -137,8 +137,8 @@ struct convolution_fft_bit_fit {
   using field_type = default_bit_field;
   using traits = bit_fit_traits<field_type>;
   using transformer_type = Fft;
-  using convolution_class = convolution<transformer_type>;
-  using polynomial_type = convolution_class::polynomial_type;
+//  using convolution_class = convolution<transformer_type>;
+  using polynomial_type = transformer_type::polynomial_type;
 
   long long integer(complex_t c) const { return (long long)(c.real()+0.125); }
 
@@ -198,14 +198,27 @@ struct convolution_ntt_bit_fit {
   using field_type = default_bit_field;
   using traits = bit_fit_traits<field_type>;
   using transformer_type = Ntt<>;
-  using convolution_class = convolution<transformer_type>;
-  using polynomial_type = convolution_class::polynomial_type;
+//  using convolution_class = convolution<transformer_type>;
+  using polynomial_type = transformer_type::polynomial_type;
 
   template <typename T>
   size_t operator()(const field_type& field, const std::vector<T>& pattern, size_t initial_pos) const {
 	const size_t m = *max_element(pattern.begin(), pattern.end())+1;
 	transformer_type transformer(calc::greater_eq_pow2(2 * m - 1));
 	const size_t poly_size = transformer.n();
+	auto set_field_block = [&](size_t block, auto& vec) {
+	  size_t offset = block*m;
+	  size_t i = 0;
+	  if (field.size()-offset >= m) {
+		for (; i < m; i++)
+		  vec[i] = field[offset+i] ? 0 : 1;
+	  } else {
+		for (; offset+i < field.size(); i++)
+		  vec[i] = field[offset+i] ? 0 : 1;
+		for (; i < m; i++)
+		  vec[i] = 0;
+	  }
+	};
 	polynomial_type pattern_poly_rev_trans(poly_size, 0);
 	for (auto p : pattern)
 	  pattern_poly_rev_trans[(poly_size-p)%poly_size] = 1;
@@ -215,14 +228,6 @@ struct convolution_ntt_bit_fit {
 	  for (size_t i = 0; i < poly_size; i++)
 		result[i] *= pattern_poly_rev_trans[i];
 	  transformer.inplace_inverse_transform(result);
-	};
-	auto set_field_block = [&](size_t block, auto& vec) {
-	  size_t offset = block*m;
-	  size_t i = 0;
-	  for (; i < m and offset+i < field.size(); i++)
-	    vec[i] = field[offset+i] ? 0 : 1;
-	  for (; i < poly_size; i++)
-	    vec[i] = 0;
 	};
 
 	const size_t num_blocks = (field.size()-1)/m+1;
