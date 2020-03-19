@@ -9,25 +9,14 @@
 #include "boost/align/aligned_allocator.hpp"
 #include "fftw3.h"
 
+#include "calc.hpp"
+
 #ifndef BIT_FITTING_INCLUDE_FFT_HPP_
 #define BIT_FITTING_INCLUDE_FFT_HPP_
 
 namespace bit_fitting {
 
 /* FFT(Fast Fourier Transform) - Stockham algorithm */
-
-namespace calc {
-
-size_t upper_pow2(size_t x) {
-  return x == 0 ? 0 : 1ull << (64 - bo::clz_u64(x-1));
-}
-
-size_t log_n(size_t x) {
-  assert(bo::popcnt_u64(x) == 1);
-  return bo::ctz_u64(x);
-}
-
-}
 
 //using complex_t = std::complex<double>;
 
@@ -313,7 +302,7 @@ void fft(It vec_begin, It vec_end) {
 }
 
 void fft(complex_vector& vec) {
-  auto len = calc::upper_pow2(vec.size());
+  auto len = calc::greater_eq_pow2(vec.size());
   vec.resize(len, {0,0});
   fft(vec.begin(), vec.end());
 }
@@ -367,7 +356,7 @@ void ifft(It vec_begin, It vec_end) {
 }
 
 void ifft(complex_vector& vec) {
-  auto len = calc::upper_pow2(vec.size());
+  auto len = calc::greater_eq_pow2(vec.size());
   vec.resize(len, {0,0});
   ifft(vec.begin(), vec.end());
 }
@@ -392,7 +381,7 @@ void multiply_polynomial(It g_begin, It g_end, It h_begin, It h_end, It f_begin,
 }
 
 void multiply_polynomial(complex_vector& g, complex_vector& h, complex_vector& f) {
-  auto len = calc::upper_pow2(g.size()+h.size()-1);
+  auto len = calc::greater_eq_pow2(g.size()+h.size()-1);
   g.resize(len, {0,0});
   h.resize(len, {0,0});
   f.resize(len, {0,0});
@@ -401,7 +390,7 @@ void multiply_polynomial(complex_vector& g, complex_vector& h, complex_vector& f
 
 
 void multiply_polynomial_inplace(complex_vector& g, complex_vector& h) {
-  auto len = calc::upper_pow2(g.size()+h.size()-1);
+  auto len = calc::greater_eq_pow2(g.size()+h.size()-1);
   g.resize(len, {0,0});
   h.resize(len, {0,0});
   multiply_polynomial(g.begin(), g.end(), h.begin(), h.end(), g.begin(), g.end());
@@ -419,22 +408,20 @@ class Fft {
 
   size_t n() const { return n_; }
 
-  polynomial_type transform(const polynomial_type& f) const {
-	polynomial_type ff(n_);
-	std::copy(f.begin(), f.end(), ff.begin());
-	fft(ff.begin(), ff.end());
-	return ff;
+  void transform(const polynomial_type& f, polynomial_type& tf) const {
+	tf = f;
+	tf.resize(n_, 0);
+	fft(tf.begin(), tf.end());
   }
 
   void inplace_transform(polynomial_type& f) const {
 	fft(f.begin(), f.end());
   }
 
-  polynomial_type inverse_transform(const polynomial_type& f) const {
-	polynomial_type ff(n_);
-	std::copy(f.begin(), f.end(), ff.begin());
-	ifft(ff.begin(), ff.end());
-	return ff;
+  void inverse_transform(const polynomial_type& f, polynomial_type& tf) const {
+	tf = f;
+	tf.resize(n_, 0);
+	ifft(tf.begin(), tf.end());
   }
 
   void inplace_inverse_transform(polynomial_type& f) const {

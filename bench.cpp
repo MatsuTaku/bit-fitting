@@ -9,7 +9,7 @@ namespace {
 
 constexpr bool kShowBase = false;
 
-constexpr size_t kNumTests = 8;
+constexpr size_t kNumTests = 16;
 constexpr size_t kNumAlgorithms = 4;
 const std::array<std::string, kNumAlgorithms> algorithm_names = {
 	"Brute-force",

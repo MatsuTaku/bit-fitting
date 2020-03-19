@@ -82,22 +82,20 @@ class Ntt {
 
   size_t n() const { return n_; }
 
-  polynomial_type transform(const polynomial_type& f) const {
-	auto ff = f;
-	ff.resize(n_, 0);
-	_transform(ff);
-	return ff;
+  void transform(const polynomial_type& f, polynomial_type& tf) const {
+	tf = f;
+	tf.resize(n_, 0);
+	_transform(tf);
   }
 
   void inplace_transform(polynomial_type& f) const {
     _transform(f);
   }
 
-  polynomial_type inverse_transform(const polynomial_type& f) const {
-	auto ff = f;
-	ff.resize(n_, 0);
-	_inverse_transform(ff);
-	return ff;
+  void inverse_transform(const polynomial_type& f, polynomial_type& tf) const {
+    tf = f;
+	tf.resize(n_, 0);
+	_inverse_transform(tf);
   }
 
   void inplace_inverse_transform(polynomial_type& f) const {

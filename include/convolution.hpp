@@ -22,8 +22,9 @@ class convolution {
   size_t n() const { return transformer_.n(); }
 
   polynomial_type operator()(const polynomial_type& g, const polynomial_type& h) const {
-    auto tg = transformer_.transform(g);
-	auto th = transformer_.transform(h);
+	polynomial_type tg, th;
+    transformer_.transform(g, tg);
+	transformer_.transform(h, th);
 	for (size_t i = 0; i < tg.size(); i++)
 	  tg[i] *= th[i];
 	transformer_.inplace_inverse_transform(tg);
