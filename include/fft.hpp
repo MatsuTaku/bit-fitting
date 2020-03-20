@@ -27,14 +27,6 @@ class complex_t {
   complex_t() : re_(0), im_(0) {}
   complex_t(double r) : re_(r), im_(0) {}
   complex_t(double r, double i) : re_(r), im_(i) {}
-#ifdef __SSE2__
-  complex_t(__m128d ri) {
-	_mm_store_pd(&re_, ri);
-  }
-  __m128d m128d() const {
-	return _mm_load_pd(&re_);
-  }
-#endif
 
   double real() const { return re_; }
   double imag() const { return im_; }
@@ -43,11 +35,7 @@ class complex_t {
   double* data() { return &re_; }
 
   complex_t operator+(const complex_t& x) const {
-#ifdef __SSE2__
-	return {_mm_add_pd(m128d(), x.m128d())};
-#else
-	return {re_ + x.re_, im_ + x.im_};
-#endif
+    return {re_ + x.re_, im_ + x.im_};
   }
   complex_t& operator+=(const complex_t& x) {
 	*this = *this + x;
@@ -57,25 +45,13 @@ class complex_t {
 	return {-re_, -im_};
   }
   complex_t operator-(const complex_t& x) const {
-#ifdef __SSE2__
-	return {_mm_sub_pd(m128d(), x.m128d())};
-#else
 	return {re_ - x.re_, im_ - x.im_};
-#endif
   }
   complex_t& operator-=(const complex_t& x) {
 	return *this += -x;
   }
   complex_t operator*(const complex_t& x) const {
-#ifdef __SSE3__
-	const __m128d rr = _mm_load1_pd(&re_);
-	const __m128d ii = _mm_load1_pd(&im_);
-	const __m128d xy = x.m128d();
-	const __m128d yx = _mm_set_pd(x.im_, x.re_);
-	return {_mm_addsub_pd(_mm_mul_pd(rr, xy), _mm_mul_pd(ii, yx))};
-#else
 	return {re_*x.re_ - im_*x.im_, re_*x.im_ + im_*x.re_};
-#endif
   }
   complex_t& operator*=(const complex_t& x) {
 	return *this = *this * x;

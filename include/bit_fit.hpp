@@ -206,6 +206,7 @@ struct convolution_ntt_bit_fit {
 	const size_t m = *max_element(pattern.begin(), pattern.end())+1;
 	transformer_type transformer(calc::greater_eq_pow2(2 * m - 1));
 	const size_t poly_size = transformer.n();
+
 	auto set_field_block = [&](size_t block, auto& vec) {
 	  size_t offset = block*m;
 	  size_t i = 0;
@@ -222,6 +223,7 @@ struct convolution_ntt_bit_fit {
 	polynomial_type pattern_poly_rev_trans(poly_size, 0);
 	for (auto p : pattern)
 	  pattern_poly_rev_trans[(poly_size-p)%poly_size] = 1;
+
 	transformer.inplace_transform(pattern_poly_rev_trans);
 	auto convolute_conflicts = [&](auto field_block, auto& result) {
 	  transformer.transform(field_block, result);
@@ -234,20 +236,22 @@ struct convolution_ntt_bit_fit {
 	polynomial_type field_poly[2] = {polynomial_type(poly_size, 0), polynomial_type(poly_size, 0)};
 	polynomial_type convoluted[2];
 
-	size_t b = initial_pos/m;
-	set_field_block(b, field_poly[b%2]);
-	convolute_conflicts(field_poly[b%2], convoluted[b%2]);
-	for (; b < num_blocks; b++) {
-	  const size_t offset = b*m;
-	  const size_t idc = b%2;
-	  const size_t idn = (b+1)%2;
-	  set_field_block(b+1, field_poly[idn]);
-	  convolute_conflicts(field_poly[idn], convoluted[idn]);
-	  size_t pos = b == initial_pos/m ? initial_pos%m : 0;
-	  for (; pos < m; pos++) {
-		auto cnt_conflict = convoluted[idc][pos].val() + convoluted[idn][poly_size-(int)m+pos].val();
-		if (cnt_conflict == 0) {
-		  return offset + pos;
+	{ // closure of b
+	  size_t b = initial_pos/m;
+	  set_field_block(b, field_poly[b%2]);
+	  convolute_conflicts(field_poly[b%2], convoluted[b%2]);
+	  for (; b < num_blocks; b++) {
+		const size_t offset = b*m;
+		const size_t idc = b%2;
+		const size_t idn = (b+1)%2;
+		set_field_block(b+1, field_poly[idn]);
+		convolute_conflicts(field_poly[idn], convoluted[idn]);
+		size_t pos = b == initial_pos/m ? initial_pos%m : 0;
+		for (; pos < m; pos++) {
+		  auto cnt_conflict = convoluted[idc][pos].val() + convoluted[idn][poly_size-(int)m+pos].val();
+		  if (cnt_conflict == 0) {
+			return offset + pos;
+		  }
 		}
 	  }
 	}
