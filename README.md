@@ -1,7 +1,7 @@
 # bit-fitting
 
 ## Benchmark usage
-```
+```bash
 # Build program
 mkdir build
 cd build

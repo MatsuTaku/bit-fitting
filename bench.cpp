@@ -1,6 +1,7 @@
 #include <iostream>
 #include <random>
 #include <vector>
+#include <set>
 #include <unordered_set>
 
 #include "bit_fit.hpp"
@@ -28,7 +29,8 @@ using bit_fitter_tuple = std::tuple<
 bit_fitter_tuple bit_fitters;
 
 const size_t log_n = 24;
-const size_t occurence_rate_inv = 4;
+//const size_t occurence_rate_inv = 4;
+const size_t log_alphabets = 20;
 
 std::random_device rd;
 std::mt19937_64 eng(rd());
@@ -57,15 +59,13 @@ double time_us_in(Process process) {
   return clock() - start;
 }
 
-std::vector<size_t> create_randmom_pieces(size_t alphabet_size, size_t inv_exist_rate) {
-  std::vector<size_t> p;
-  while (p.empty()) {
-	for (size_t i = 0; i < alphabet_size; i++) {
-	  if (random_ll()%inv_exist_rate == 0)
-		p.push_back(i);
-	}
+std::vector<size_t> create_randmom_pieces(size_t alphabet_size, size_t cnt_occures) {
+  std::set<size_t> ps;
+  while (ps.size() < cnt_occures) {
+    size_t v = random_ll()%alphabet_size;
+    ps.insert(v);
   }
-  return p;
+  return std::vector(ps.begin(), ps.end());
 }
 
 bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_t x, const std::vector<size_t>& pieces) {
@@ -94,11 +94,11 @@ bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_
   return field;
 }
 
-std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alphabet_size, size_t inv_exist_rate) {
+std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alphabet_size, size_t cnt_occures) {
   std::array<double, kNumAlgorithms> time_sum = {};
   volatile long long base = 0;
   { // warm up
-	const auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
+	const auto pattern = create_randmom_pieces(alphabet_size, cnt_occures);
 	const auto ans = random_ll()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
 	volatile double t = 0;
@@ -124,7 +124,7 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 //	}
   }
   for (int i = 0; i < kNumTests; i++) {
-	auto pattern = create_randmom_pieces(alphabet_size, inv_exist_rate);
+	auto pattern = create_randmom_pieces(alphabet_size, cnt_occures);
 	auto ans = random_ll()%field_size;
 	auto field = create_field_fit_at_with(field_size, ans, pattern);
 	{
@@ -201,15 +201,16 @@ int main() {
 
   std::cout << "Test various bit-fit algorithm" << std::endl;
   std::cout << "N: " << (1<<log_n) << std::endl;
-  std::cout << "Occurence rate: " << "1/" << occurence_rate_inv << std::endl;
+//  std::cout << "Occurence rate: " << "1/" << occurence_rate_inv << std::endl;
+  std::cout << "|\\Sigma|: " << (1<<log_alphabets) << std::endl;
   std::cout << "---------------------------------------------------------------------" << std::endl;
   std::cout << "       \t";
   for (auto name : algorithm_names)
     std::cout << name << '\t' ;
   std::cout << std::endl;
-  for (size_t log_m = 2; log_m < log_n; log_m+=1) {
-	auto times = benchmark_all(1 << log_n, 1 << log_m, occurence_rate_inv);
-	std::cout<< (1<<log_m) << '\t' ;
+  for (size_t log_m = 2; log_m < log_alphabets; log_m+=1) {
+	std::cout<< (1<<log_m) << '\t' << std::flush;
+	auto times = benchmark_all(1 << log_n, 1 << log_alphabets, 1<<log_m);
 	for (auto time : times) {
 	  std::cout<< time/1000000 << '\t' ;
 	}
