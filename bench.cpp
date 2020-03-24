@@ -5,10 +5,11 @@
 #include <unordered_set>
 
 #include "bit_fit.hpp"
+#include "convolution.hpp"
 
 namespace {
 
-constexpr bool kShowBase = false;
+constexpr bool kShowBase = true;
 
 constexpr size_t kNumTests = 10;
 constexpr size_t kNumAlgorithms = 5;
@@ -29,7 +30,6 @@ using bit_fitter_tuple = std::tuple<
 bit_fitter_tuple bit_fitters;
 
 const size_t log_n = 24;
-//const size_t occurence_rate_inv = 4;
 const size_t log_alphabets = 20;
 
 std::random_device rd;
@@ -181,9 +181,16 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 }
 
 int main() {
+  {
+    using transformer = bit_fitting::Fft;
+    transformer::polynomial_type T = {1,1,1,1,0,0,0,0};
+    transformer::polynomial_type P = {1,0,0,0,0,1,1,1};
+    transformer::polynomial_type C; bit_fitting::convolution<bit_fitting::Fft>(8)(T, P, C);
+    for (auto v : C) std::cerr<<(long long)(v.real()+0.125)<<" ";
+    std::cerr<<std::endl;
+  }
   std::cout << "Test various bit-fit algorithm" << std::endl;
   std::cout << "N: " << (1<<log_n) << std::endl;
-//  std::cout << "Occurence rate: " << "1/" << occurence_rate_inv << std::endl;
   std::cout << "\\Sigma: " << (1<<log_alphabets) << std::endl;
   std::cout << "---------------------------------------------------------------------" << std::endl;
   std::cout << "       \t";
@@ -198,9 +205,6 @@ int main() {
 	}
 	std::cout << std::endl;
   }
-
-//  test({1,1,1,0,1,0,1,1,1,0,0,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1},
-//       {1,3,6,8,10}, 5);
 
   return 0;
 }

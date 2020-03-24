@@ -83,8 +83,8 @@ class Ntt {
   size_t n() const { return n_; }
 
   void transform(const polynomial_type& f, polynomial_type& tf) const {
-	tf = f;
-	tf.resize(n_, 0);
+	tf.assign(n_, 0);
+	std::copy(f.begin(), f.end(), tf.begin());
 	_transform(tf);
   }
 
@@ -93,8 +93,8 @@ class Ntt {
   }
 
   void inverse_transform(const polynomial_type& f, polynomial_type& tf) const {
-    tf = f;
-	tf.resize(n_, 0);
+    tf.assign(n_, 0);
+    std::copy(f.begin(), f.end(), tf.begin());
 	_inverse_transform(tf);
   }
 
@@ -114,7 +114,7 @@ class Ntt {
 
  private:
   template <bool Forward>
-  void _transform_impl(polynomial_type& f) const {
+  void _transform_cooly_tukey(polynomial_type& f) const {
     // Iterative bitreverse
     for (size_t i = 0; i < n_; i++) {
       auto j = bitreverse(i);
@@ -140,14 +140,11 @@ class Ntt {
   }
 
   void _transform(polynomial_type& f) const {
-    _transform_impl<true>(f);
+    _transform_cooly_tukey<true>(f);
   }
 
   void _inverse_transform(polynomial_type& f) const {
-	_transform_impl<false>(f);
-	modint_type inv_n = modint_type{1}/n_;
-	for (auto& x : f)
-	  x *= inv_n;
+	_transform_cooly_tukey<false>(f);
   }
 
 };

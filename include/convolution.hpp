@@ -21,14 +21,15 @@ class convolution {
 
   size_t n() const { return transformer_.n(); }
 
-  polynomial_type operator()(const polynomial_type& g, const polynomial_type& h) const {
-	polynomial_type tg, th;
-    transformer_.transform(g, tg);
+  void operator()(const polynomial_type& g, const polynomial_type& h, polynomial_type& f) const {
+	polynomial_type th;
+    transformer_.transform(g, f);
 	transformer_.transform(h, th);
-	for (size_t i = 0; i < tg.size(); i++)
-	  tg[i] *= th[i];
-	transformer_.inplace_inverse_transform(tg);
-	return tg;
+	for (size_t i = 0; i < f.size(); i++)
+      f[i] *= th[i];
+	transformer_.inplace_inverse_transform(f);
+    for (auto& v : f)
+      v /= n();
   }
 
 };

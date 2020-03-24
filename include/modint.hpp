@@ -18,7 +18,7 @@ class modint {
   constexpr bool operator!=(modint x) const { return !(*this == x); }
 
   constexpr modint operator+(modint x) const { return (val() + x.val())%Mod; }
-  constexpr modint& operator+=(modint x) { return *this = *this + x; return *this; }
+  constexpr modint& operator+=(modint x) { return *this = *this + x; }
   constexpr modint operator-(modint x) const { return (val()+Mod - x.val())%Mod; }
   constexpr modint& operator-=(modint x) { return *this = *this - x; }
   constexpr modint operator*(modint x) const { return (val() * x.val())%Mod; }
