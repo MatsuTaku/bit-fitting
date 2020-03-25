@@ -73,7 +73,7 @@ std::vector<size_t> create_randmom_pieces(size_t alphabet_size, size_t cnt_occur
   return std::vector(ps.begin(), ps.end());
 }
 
-bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_t x, const std::vector<size_t>& pieces) {
+bit_fitting::default_bit_field create_sparse_field_fit_at_with(size_t field_size, size_t x, const std::vector<size_t>& pieces) {
   auto F = field_size;
   auto P = pieces.back();
   bit_fitting::default_bit_field field(F, true);
@@ -99,13 +99,31 @@ bit_fitting::default_bit_field create_field_fit_at_with(size_t field_size, size_
   return field;
 }
 
-std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alphabet_size, size_t cnt_occures) {
+bit_fitting::default_bit_field create_dense_field_fit_at_with(size_t field_size, size_t x, const std::vector<size_t>& pieces) {
+  auto F = field_size;
+  auto P = pieces.back();
+  bit_fitting::default_bit_field field(F, true);
+  std::unordered_set<size_t> p_set;
+  for (auto pos : pieces)
+	p_set.insert(x + pos);
+  for (size_t i = 0; i < F-P; i++) {
+	if (i == x)
+	  continue;
+	auto p = pieces[random_ll()%pieces.size()];
+	while (p_set.count(i+p) > 0)
+	  p = pieces[random_ll()%pieces.size()];
+	field[i+p] = false;
+  }
+  return field;
+}
+
+std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alphabet_size, size_t cnt_occures, int sd_type) {
   std::array<double, kNumAlgorithms> time_sum = {};
   volatile long long base = 0;
   { // warm up
 	const auto pattern = create_randmom_pieces(alphabet_size, cnt_occures);
 	const auto ans = random_ll()%field_size;
-	auto field = create_field_fit_at_with(field_size, ans, pattern);
+	auto field = create_sparse_field_fit_at_with(field_size, ans, pattern);
 	volatile double t = 0;
 	{
 	  auto f = std::get<0>(bit_fitters).field(&field);
@@ -131,7 +149,9 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
   for (int i = 0; i < kNumTests; i++) {
 	auto pattern = create_randmom_pieces(alphabet_size, cnt_occures);
 	auto ans = random_ll()%field_size;
-	auto field = create_field_fit_at_with(field_size, ans, pattern);
+	auto field = (sd_type==0?
+				  create_sparse_field_fit_at_with(field_size, ans, pattern):
+				  create_dense_field_fit_at_with(field_size, ans, pattern));
 	{
 	  auto f = std::get<0>(bit_fitters).field(&field);
 	  time_sum[0] += time_us_in([&]{
@@ -189,20 +209,26 @@ void check_fft() {
 
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 //  check_fft();
+
+  if (argc < 2) {
+    std::cerr<<"Usage: "<<argv[0]<<" [0(sparse), 1(dense)]"<<std::endl;
+    exit(EXIT_FAILURE);
+  }
+  int sd_type = argv[1][0]-'0';
 
   std::cout << "Test various bit-fit algorithm" << std::endl;
   std::cout << "N: " << (1<<log_n) << std::endl;
   std::cout << "\\Sigma: " << (1<<log_alphabets) << std::endl;
   std::cout << "---------------------------------------------------------------------" << std::endl;
   std::cout << "       \t";
-  for (auto name : algorithm_names)
+  for (auto& name : algorithm_names)
     std::cout << name << '\t' ;
   std::cout << std::endl;
   for (size_t log_m = 2; log_m < log_alphabets; log_m+=1) {
 	std::cout<< (1<<log_m) << '\t' << std::flush;
-	auto times = benchmark_all(1 << log_n, 1 << log_alphabets, 1<<log_m);
+	auto times = benchmark_all(1 << log_n, 1 << log_alphabets, 1<<log_m, sd_type);
 	for (auto time : times) {
 	  std::cout<< time/1000000 << '\t' ;
 	}
