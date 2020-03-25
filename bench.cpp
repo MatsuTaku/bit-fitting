@@ -117,6 +117,20 @@ bit_fitting::default_bit_field create_dense_field_fit_at_with(size_t field_size,
   return field;
 }
 
+bit_fitting::default_bit_field create_field_rated(size_t field_size, size_t inv_occurence_rate) {
+  auto F = field_size;
+  bit_fitting::default_bit_field field(F, true);
+  for (int i = 0; i < F/inv_occurence_rate; i++)
+    field[i] = false;
+  for (int i = 0; i < F; i++) {
+    auto t = random_ll()%F;
+    auto tmp = field[i];
+    field[i] = field[t];
+    field[t] = tmp;
+  }
+  return field;
+}
+
 std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alphabet_size, size_t cnt_occures, int sd_type) {
   std::array<double, kNumAlgorithms> time_sum = {};
   volatile long long base = 0;
@@ -151,7 +165,7 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
 	auto ans = random_ll()%field_size;
 	auto field = (sd_type==0?
 				  create_sparse_field_fit_at_with(field_size, ans, pattern):
-				  create_dense_field_fit_at_with(field_size, ans, pattern));
+				  create_field_rated(field_size, sd_type));
 	{
 	  auto f = std::get<0>(bit_fitters).field(&field);
 	  time_sum[0] += time_us_in([&]{
@@ -213,7 +227,7 @@ int main(int argc, char* argv[]) {
 //  check_fft();
 
   if (argc < 2) {
-    std::cerr<<"Usage: "<<argv[0]<<" [0(sparse), 1(dense)]"<<std::endl;
+    std::cerr<<"Usage: "<<argv[0]<<" [rate: 0(sparse), 1-(rate)]"<<std::endl;
     exit(EXIT_FAILURE);
   }
   int sd_type = argv[1][0]-'0';
@@ -221,6 +235,10 @@ int main(int argc, char* argv[]) {
   std::cout << "Test various bit-fit algorithm" << std::endl;
   std::cout << "N: " << (1<<log_n) << std::endl;
   std::cout << "\\Sigma: " << (1<<log_alphabets) << std::endl;
+  if (sd_type == 0)
+    std::cout << "Field type: Sparse field" << std::endl;
+  else
+    std::cout << "Field type: occurence rate is 1/" << sd_type << std::endl;
   std::cout << "---------------------------------------------------------------------" << std::endl;
   std::cout << "       \t";
   for (auto& name : algorithm_names)
