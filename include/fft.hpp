@@ -296,24 +296,7 @@ void fft(complex_vector& vec) {
 }
 
 template <typename It>
-void ifft(It vec_begin, It vec_end, It aux_begin, It aux_end) {
-  _fft<false>(vec_begin, vec_end, aux_begin, aux_end);
-}
-
-template <typename It>
-void ifft(It vec_begin, It vec_end) {
-  _fft<false>(vec_begin, vec_end);
-}
-
-void ifft(complex_vector& vec) {
-  auto len = calc::greater_eq_pow2(vec.size());
-  vec.resize(len, {0,0});
-  ifft(vec.begin(), vec.end());
-}
-
-
-template <typename It>
-void div_all(It vec_begin, It vec_end, double n) {
+void divide_all(It vec_begin, It vec_end, double n) {
 #ifdef __AVX__
   const auto nn = _mm256_set1_pd(n);
   for (auto it = vec_begin; it != vec_end; it+=2) {
@@ -324,6 +307,24 @@ void div_all(It vec_begin, It vec_end, double n) {
   for (auto it = vec_begin; it != vec_end; ++it)
 	*it /= n;
 #endif
+}
+
+template <typename It>
+void ifft(It vec_begin, It vec_end, It aux_begin, It aux_end) {
+  _fft<false>(vec_begin, vec_end, aux_begin, aux_end);
+  divide_all(vec_begin, vec_end, vec_end-vec_begin);
+}
+
+template <typename It>
+void ifft(It vec_begin, It vec_end) {
+  _fft<false>(vec_begin, vec_end);
+  divide_all(vec_begin, vec_end, vec_end-vec_begin);
+}
+
+void ifft(complex_vector& vec) {
+  auto len = calc::greater_eq_pow2(vec.size());
+  vec.resize(len, {0,0});
+  ifft(vec.begin(), vec.end());
 }
 
 template <typename It>
@@ -342,7 +343,6 @@ void multiply_polynomial(It g_begin, It g_end, It h_begin, It h_end, It f_begin,
     *(f_begin+i) = *(g_begin+i) * *(h_begin+i);
 #endif
   ifft(f_begin, f_end);
-  div_all(f_begin, f_end, len);
 }
 
 void multiply_polynomial(complex_vector& g, complex_vector& h, complex_vector& f) {

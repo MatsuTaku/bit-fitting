@@ -118,11 +118,10 @@ class Ntt {
     // Iterative bitreverse
     for (size_t i = 0; i < n_; i++) {
       auto j = bitreverse(i);
-      if (i >= j)
-        continue;
-      std::swap(f[i], f[j]);
+      if (i < j)
+        std::swap(f[i], f[j]);
     }
-    // Cooly-Tukey Algorithm
+    // FFT: Cooly-Tukey
     for (size_t log_m = 0; log_m < log_n_; log_m++) {
       auto m = 1ull<<log_m;
       auto zeta = Forward ? zeta_[log_m] : izeta_[log_m];
@@ -145,6 +144,9 @@ class Ntt {
 
   void _inverse_transform(polynomial_type& f) const {
 	_transform_cooly_tukey<false>(f);
+	modint_type div_n = modint_type{1}/n();
+	for (auto& v : f)
+	  v *= div_n;
   }
 
 };

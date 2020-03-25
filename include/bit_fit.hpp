@@ -174,7 +174,6 @@ struct convolution_fft_bit_fit {
       for (size_t i = 0; i < poly_size; i++)
         dst[i] *= pattern_poly_rev_trans[i];
       transformer.inplace_inverse_transform(dst);
-      div_all(dst.begin(), dst.end(), poly_size);
     };
 
     const size_t num_blocks = (field.size()-1)/m+1;
@@ -243,8 +242,6 @@ struct convolution_ntt_bit_fit {
 	  for (size_t i = 0; i < poly_size; i++)
         dst[i] *= pattern_poly_rev_trans[i];
 	  transformer.inplace_inverse_transform(dst);
-	  auto div_n = transformer_type::modint_type{1}/poly_size;
-	  for (auto& v : dst) v *= div_n;
 	};
 
 	const size_t num_blocks = (field.size()-1)/m+1;

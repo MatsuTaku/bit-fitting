@@ -28,8 +28,6 @@ class convolution {
 	for (size_t i = 0; i < f.size(); i++)
       f[i] *= th[i];
 	transformer_.inplace_inverse_transform(f);
-    for (auto& v : f)
-      v /= n();
   }
 
 };

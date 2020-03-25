@@ -178,17 +178,20 @@ std::array<double, kNumAlgorithms> benchmark_all(size_t field_size, size_t alpha
   return time_sum;
 }
 
+void check_fft() {
+  using transformer = bit_fitting::Fft;
+  transformer::polynomial_type T = {1,1,1,1,0,0,0,0};
+  transformer::polynomial_type P = {1,0,0,0,0,1,1,1};
+  transformer::polynomial_type C; bit_fitting::convolution<bit_fitting::Fft>(8)(T, P, C);
+  for (auto v : C) std::cerr<<(long long)(v.real()+0.125)<<" ";
+  std::cerr<<std::endl;
+}
+
 }
 
 int main() {
-  {
-    using transformer = bit_fitting::Fft;
-    transformer::polynomial_type T = {1,1,1,1,0,0,0,0};
-    transformer::polynomial_type P = {1,0,0,0,0,1,1,1};
-    transformer::polynomial_type C; bit_fitting::convolution<bit_fitting::Fft>(8)(T, P, C);
-    for (auto v : C) std::cerr<<(long long)(v.real()+0.125)<<" ";
-    std::cerr<<std::endl;
-  }
+  check_fft();
+
   std::cout << "Test various bit-fit algorithm" << std::endl;
   std::cout << "N: " << (1<<log_n) << std::endl;
   std::cout << "\\Sigma: " << (1<<log_alphabets) << std::endl;
