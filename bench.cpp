@@ -9,7 +9,7 @@
 
 namespace {
 
-constexpr bool kShowBase = true;
+constexpr bool kShowBase = false;
 
 constexpr size_t kNumTests = 10;
 constexpr size_t kNumAlgorithms = 5;
@@ -190,7 +190,7 @@ void check_fft() {
 }
 
 int main() {
-  check_fft();
+//  check_fft();
 
   std::cout << "Test various bit-fit algorithm" << std::endl;
   std::cout << "N: " << (1<<log_n) << std::endl;
