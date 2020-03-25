@@ -24,7 +24,7 @@ for i in range(len(alg_names)):
     ax.plot(alg_datas[0], alg_datas[i+1], label=alg_names[i])
 ax.set_xlabel('alphabet size')
 ax.set_xscale('log')
-ax.set_ylabel('time [us/query]')
+ax.set_ylabel('time [seconds/query]')
 ax.set_yscale('log')
 ax.legend()
 
