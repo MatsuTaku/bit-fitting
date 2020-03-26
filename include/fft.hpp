@@ -72,6 +72,10 @@ class complex_t {
   }
 };
 
+using complex_vector = std::vector<complex_t, boost::alignment::aligned_allocator<complex_t, 32>>;
+
+
+namespace fft {
 
 #ifdef __AVX__
 __m256d mulpz2(const __m256d ab, const __m256d xy) {
@@ -241,8 +245,6 @@ void _eightstep_fft(size_t log_n, It x_begin, It y_begin) {
 #endif
 }
 
-using complex_vector = std::vector<complex_t, boost::alignment::aligned_allocator<complex_t, 32>>;
-
 
 template <bool Forward, typename It>
 void _fft_stockham(It vec_begin, It vec_end, It aux_begin, It aux_end) {
@@ -309,6 +311,22 @@ void divide_all(It vec_begin, It vec_end, double n) {
 #endif
 }
 
+template <typename Iit, typename Oit>
+void multiply_for_each(Iit g_begin, Iit g_end, Iit h_begin, Iit h_end, Oit f_begin) {
+  auto len = g_end - g_begin;
+  assert(len == h_end-h_begin);
+#ifdef __AVX__
+  for (size_t i = 0; i < len; i+=2) {
+	const auto ab = _mm256_load_pd(reinterpret_cast<const double*>(&*(g_begin+i)));
+	const auto cd = _mm256_load_pd(reinterpret_cast<const double*>(&*(h_begin+i)));
+	_mm256_store_pd(reinterpret_cast<double*>(&*(f_begin+i)), mulpz2(ab, cd));
+  }
+#else
+  for (size_t i = 0 ; i < len; i++)
+    *(f_begin+i) = *(g_begin+i) * *(h_begin+i);
+#endif
+}
+
 template <typename It>
 void ifft(It vec_begin, It vec_end, It aux_begin, It aux_end) {
   _fft<false>(vec_begin, vec_end, aux_begin, aux_end);
@@ -331,17 +349,7 @@ template <typename It>
 void multiply_polynomial(It g_begin, It g_end, It h_begin, It h_end, It f_begin, It f_end) {
   fft(g_begin, g_end);
   fft(h_begin, h_end);
-  auto len = g_end - g_begin;
-#ifdef __AVX__
-  for (size_t i = 0; i < len; i+=2) {
-	const auto ab = _mm256_load_pd(reinterpret_cast<const double*>(&*(g_begin+i)));
-	const auto cd = _mm256_load_pd(reinterpret_cast<const double*>(&*(h_begin+i)));
-	_mm256_store_pd(reinterpret_cast<double*>(&*(f_begin+i)), mulpz2(ab, cd));
-  }
-#else
-  for (size_t i = 0 ; i < len; i++)
-    *(f_begin+i) = *(g_begin+i) * *(h_begin+i);
-#endif
+  multiply_for_each(g_begin, g_end, h_begin, h_end, f_begin);
   ifft(f_begin, f_end);
 }
 
@@ -361,6 +369,8 @@ void multiply_polynomial_inplace(complex_vector& g, complex_vector& h) {
   multiply_polynomial(g.begin(), g.end(), h.begin(), h.end(), g.begin(), g.end());
 }
 
+} // namespace fft
+
 
 class Fft {
  public:
@@ -376,21 +386,21 @@ class Fft {
   void transform(const polynomial_type& f, polynomial_type& tf) const {
 	tf.assign(n_, 0);
 	std::copy(f.begin(), f.end(), tf.begin());
-	fft(tf.begin(), tf.end());
+	fft::fft(tf.begin(), tf.end());
   }
 
   void inplace_transform(polynomial_type& f) const {
-	fft(f.begin(), f.end());
+	fft::fft(f.begin(), f.end());
   }
 
   void inverse_transform(const polynomial_type& f, polynomial_type& tf) const {
     tf.assign(n_, 0);
     std::copy(f.begin(), f.end(), tf.begin());
-	ifft(tf.begin(), tf.end());
+	fft::ifft(tf.begin(), tf.end());
   }
 
   void inplace_inverse_transform(polynomial_type& f) const {
-	ifft(f.begin(), f.end());
+	fft::ifft(f.begin(), f.end());
   }
 
 };

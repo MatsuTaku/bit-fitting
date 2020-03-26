@@ -9,7 +9,7 @@
 
 namespace {
 
-constexpr bool kShowBase = false;
+constexpr bool kShowBase = true;
 
 constexpr size_t kNumTests = 10;
 constexpr size_t kNumAlgorithms = 5;

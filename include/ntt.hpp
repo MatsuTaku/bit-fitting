@@ -102,30 +102,32 @@ class Ntt {
 	_inverse_transform(f);
   }
 
-  uint64_t bitreverse(uint64_t x) const {
-    return bo::bitreverse_u64(x) >> (64-log_n_);
+  uint64_t bitreverse(uint64_t x, size_t log_n) const {
+    return bo::bitreverse_u64(x) >> (64-log_n);
   }
 
  private:
-  template <bool Forward>
-  void _transform_cooly_tukey(polynomial_type& f) const {
+  template <bool Forward, typename It>
+  void _transform_cooly_tukey(It begin, It end) const {
     // Iterative bitreverse
-    for (size_t i = 0; i < n_; i++) {
-      auto j = bitreverse(i);
+    size_t n = end-begin;
+    size_t log_n = bo::ctz_u64(n);
+    for (size_t i = 0; i < n; i++) {
+      auto j = bitreverse(i, log_n);
       if (i < j)
-        std::swap(f[i], f[j]);
+        std::swap(*(begin+i), *(begin+j));
     }
     // FFT: Cooly-Tukey
-    for (size_t log_m = 0; log_m < log_n_; log_m++) {
+    for (size_t log_m = 0; log_m < log_n; log_m++) {
       auto m = 1ull<<log_m;
       auto zeta = Forward ? zeta_[log_m] : izeta_[log_m];
-      for (size_t chunk = 0; chunk < n_; chunk += 2*m) {
+      for (size_t chunk = 0; chunk < n; chunk += 2*m) {
         modint_type pow_zeta = 1;
         for (size_t i = 0; i < m; i++) {
-          auto a = f[chunk + i + 0];
-          auto b = f[chunk + i + m] * pow_zeta;
-          f[chunk + i + 0] = a + b;
-          f[chunk + i + m] = a - b;
+          auto a = *(begin + chunk + i + 0);
+          auto b = *(begin + chunk + i + m) * pow_zeta;
+		  *(begin + chunk + i + 0) = a + b;
+		  *(begin + chunk + i + m) = a - b;
           pow_zeta *= zeta;
         }
       }
@@ -133,11 +135,11 @@ class Ntt {
   }
 
   void _transform(polynomial_type& f) const {
-    _transform_cooly_tukey<true>(f);
+    _transform_cooly_tukey<true>(f.begin(), f.end());
   }
 
   void _inverse_transform(polynomial_type& f) const {
-	_transform_cooly_tukey<false>(f);
+	_transform_cooly_tukey<false>(f.begin(), f.end());
 	modint_type div_n = modint_type{1}/n();
 	for (auto& v : f)
 	  v *= div_n;
