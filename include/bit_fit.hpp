@@ -266,7 +266,7 @@ struct convolution_ntt_bit_fit {
 		for (; pos < m; pos++) {
 		  auto cnt_conflict = convoluted[idc][pos].val() + convoluted[idn][poly_size-(int)m+pos].val();
           if (cnt_conflict == 0) {
-            return offset + pos + min_p;
+            return offset + pos - min_p;
 		  }
 		}
 	  }

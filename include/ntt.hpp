@@ -61,7 +61,7 @@ class Ntt {
   std::vector<modint_type> izeta_;
 
  public:
-  Ntt(size_t n) : n_(n) {
+  explicit Ntt(size_t n) : n_(n) {
 	assert((n&(-n)) == n);
 	log_n_ = 64-bo::clz_u64(n-1);
 	assert(bo::ctz_u64(Mod-1) >= log_n_);
