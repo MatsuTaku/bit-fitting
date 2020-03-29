@@ -212,7 +212,7 @@ int main(int argc, char* argv[]) {
 //  check_fft();
 
   if (argc < 2) {
-    std::cerr<<"Usage: "<<argv[0]<<" [rate: 0(sparse), 1-(rate)]"<<std::endl;
+    std::cerr<<"Usage: "<<argv[0]<<" (rate: 0(sparse), 1~(rate))"<<std::endl;
     exit(EXIT_FAILURE);
   }
   int sd_type = std::stoi(argv[1]);
@@ -231,7 +231,7 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl;
 
   std::cout << std::fixed;
-  for (size_t log_m = 2; log_m < log_alphabets; log_m+=1) {
+  for (size_t log_m = 2; log_m <= log_alphabets; log_m+=1) {
 	std::cout<< (1<<log_m) << '\t' << std::flush;
 	auto times = benchmark_all(1 << log_n, 1 << log_alphabets, 1<<log_m, sd_type);
 	for (auto time : times) {
