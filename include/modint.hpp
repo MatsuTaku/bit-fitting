@@ -10,18 +10,18 @@ class modint {
 
  public:
   constexpr modint() : val_(0) {}
-  constexpr modint(T x) : val_((x+Mod)%Mod) {}
+  constexpr modint(T x) : val_(x%Mod) {}
 
   constexpr T val() const { return val_; }
 
   constexpr bool operator==(modint x) const { return val() == x.val(); }
   constexpr bool operator!=(modint x) const { return !(*this == x); }
 
-  constexpr modint operator+(modint x) const { return (val() + x.val())%Mod; }
+  constexpr modint operator+(modint x) const { return val() + x.val(); }
   constexpr modint& operator+=(modint x) { return *this = *this + x; }
-  constexpr modint operator-(modint x) const { return (val()+Mod - x.val())%Mod; }
+  constexpr modint operator-(modint x) const { return val()+Mod - x.val(); }
   constexpr modint& operator-=(modint x) { return *this = *this - x; }
-  constexpr modint operator*(modint x) const { return (val() * x.val())%Mod; }
+  constexpr modint operator*(modint x) const { return val() * x.val(); }
   constexpr modint& operator*=(modint x) { return *this = *this * x; }
   friend constexpr modint pow(modint x, modint p) {
     modint t = 1;
