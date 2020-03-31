@@ -389,8 +389,19 @@ class Fft {
 	fft::fft(tf.begin(), tf.end());
   }
 
+  template <typename InputIterator, typename OutputIterator>
+  void transform(InputIterator begin, InputIterator end, OutputIterator out_begin, OutputIterator out_end) const {
+    std::copy(begin, end, out_begin);
+    fft::fft(out_begin, out_end);
+  }
+
   void inplace_transform(polynomial_type& f) const {
 	fft::fft(f.begin(), f.end());
+  }
+
+  template <typename Iterator>
+  void inplace_transform(Iterator begin, Iterator end) const {
+    fft::fft(begin, end);
   }
 
   void inverse_transform(const polynomial_type& f, polynomial_type& tf) const {
@@ -399,8 +410,19 @@ class Fft {
 	fft::ifft(tf.begin(), tf.end());
   }
 
+  template <typename InputIterator, typename OutputIterator>
+  void inverse_transform(InputIterator in_begin, InputIterator in_end, OutputIterator out_begin, OutputIterator out_end) const {
+    std::copy(in_begin, in_end, out_begin);
+    fft::ifft(out_begin, out_end);
+  }
+
   void inplace_inverse_transform(polynomial_type& f) const {
 	fft::ifft(f.begin(), f.end());
+  }
+
+  template <typename Iterator>
+  void inplace_inverse_transform(Iterator begin, Iterator end) const {
+    fft::ifft(begin, end);
   }
 
 };

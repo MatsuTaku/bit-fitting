@@ -82,24 +82,44 @@ class Ntt {
 
   size_t n() const { return n_; }
 
+  template <typename InputIterator, typename OutputIterator>
+  void transform(InputIterator in_begin, InputIterator in_end, OutputIterator out_begin, OutputIterator out_end) const {
+    std::copy(in_begin, in_end, out_begin);
+    _transform(out_begin, out_end);
+  }
+
   void transform(const polynomial_type& f, polynomial_type& tf) const {
 	tf.assign(n_, 0);
-	std::copy(f.begin(), f.end(), tf.begin());
-	_transform(tf);
+	transform(f.begin(), f.end(), tf.begin(), tf.end());
+  }
+
+  template <typename Iterator>
+  void inplace_transform(Iterator begin, Iterator end) const {
+    _transform(begin, end);
   }
 
   void inplace_transform(polynomial_type& f) const {
-    _transform(f);
+    inplace_transform(f.begin(), f.end());
+  }
+
+  template <typename InputIterator, typename OutputIterator>
+  void inverse_transform(InputIterator in_begin, InputIterator in_end, OutputIterator out_begin, OutputIterator out_end) const {
+    std::copy(in_begin, in_end, out_begin);
+    _inverse_transform(out_begin, out_end);
   }
 
   void inverse_transform(const polynomial_type& f, polynomial_type& tf) const {
     tf.assign(n_, 0);
-    std::copy(f.begin(), f.end(), tf.begin());
-	_inverse_transform(tf);
+    inverse_transform(f.begin(), f.end(), tf.begin(), tf.end());
+  }
+
+  template <typename Iterator>
+  void inplace_inverse_transform(Iterator begin, Iterator end) const {
+    _inverse_transform(begin, end);
   }
 
   void inplace_inverse_transform(polynomial_type& f) const {
-	_inverse_transform(f);
+    inplace_inverse_transform(f.begin(), f.end());
   }
 
   uint64_t bitreverse(uint64_t x, size_t log_n) const {
@@ -134,15 +154,17 @@ class Ntt {
     }
   }
 
-  void _transform(polynomial_type& f) const {
-    _transform_cooly_tukey<true>(f.begin(), f.end());
+  template <typename Iter>
+  void _transform(Iter begin, Iter end) const {
+    _transform_cooly_tukey<true>(begin, end);
   }
 
-  void _inverse_transform(polynomial_type& f) const {
-	_transform_cooly_tukey<false>(f.begin(), f.end());
+  template <typename Iter>
+  void _inverse_transform(Iter begin, Iter end) const {
+	_transform_cooly_tukey<false>(begin, end);
 	modint_type div_n = modint_type{1}/n();
-	for (auto& v : f)
-	  v *= div_n;
+	for (auto it = begin; it != end; ++it)
+	  *it *= div_n;
   }
 
 };

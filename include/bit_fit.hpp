@@ -136,16 +136,23 @@ struct bit_parallel_bit_fit {
 };
 
 
-template <class Transformer, typename Value, class Eval>
+template <typename Vec>
+struct convolutable_vector_behavior : Vec {
+  convolutable_vector_behavior() = default;
+  explicit convolutable_vector_behavior(default_bit_field* bf) {
+    Vec::resize(bf->size());
+    std::transform(bf->begin(), bf->end(), Vec::begin(), [&](bool v) {return v?0:1;});
+  }
+};
+
+template <class Transformer, typename Value, typename Vec, class Eval>
 struct convolution_bit_fit {
-  using field_type = default_bit_field;
+  using field_type = convolutable_vector_behavior<Vec>;
   using traits = bit_fit_traits<field_type>;
   using transformer_type = Transformer;
   using polynomial_type = typename transformer_type::polynomial_type;
 
-  Eval eval_;
-
-  long long eval(Value x) const { return eval_(x); }
+  Eval eval;
 
   template <typename T>
   size_t operator()(const field_type& field, const std::vector<T>& pattern, size_t initial_pos) const {
@@ -164,41 +171,27 @@ struct convolution_bit_fit {
       pattern_poly_rev_trans[(poly_size-(p-min_p))%poly_size] = 1;
 
     transformer.inplace_transform(pattern_poly_rev_trans);
-    auto convolute_conflicts = [&](auto field_block, auto& dst) {
-      transformer.transform(field_block, dst);
-      for (size_t i = 0; i < poly_size; i++)
-        dst[i] *= pattern_poly_rev_trans[i];
-      transformer.inplace_inverse_transform(dst);
-    };
-
-    const size_t num_blocks = (field.size()-1)/m+1;
-    std::array<polynomial_type, 2> field_poly = {polynomial_type(poly_size), polynomial_type(poly_size)};
-    std::array<polynomial_type, 2> convoluted;
-
-    auto set_field_block = [&](size_t block, auto& vec) {
-      size_t offset = block*m;
-      size_t i = 0;
-      if (field.size()-offset >= m) {
-        for (; i < m; i++)
-          vec[i] = field[offset+i] ? 0 : 1;
-      } else {
-        for (; offset+i < field.size(); i++)
-          vec[i] = field[offset+i] ? 0 : 1;
-        for (; i < m; i++)
-          vec[i] = 0;
+    auto convolute_conflicts = [&](int block, polynomial_type& poly) {
+      if (block*poly_size >= field.size()) {
+        fill(poly.begin(), poly.end(), 0);
+        return;
       }
+      transformer.transform(field.begin()+block*poly_size, field.begin()+(block+1)*poly_size, poly.begin(), poly.end());
+      for (size_t i = 0; i < poly_size; i++)
+        *(poly.begin()+i) *= pattern_poly_rev_trans[i];
+      transformer.inplace_inverse_transform(poly.begin(), poly.end());
     };
 
     { // closure of b
+      std::array<polynomial_type, 2> convoluted = {polynomial_type(poly_size), polynomial_type(poly_size)};
       size_t b = shifted_initial_pos/m;
-      set_field_block(b, field_poly[b%2]);
-      convolute_conflicts(field_poly[b%2], convoluted[b%2]);
+      convolute_conflicts(b, convoluted[b%2]);
+      const size_t num_blocks = (field.size()-1)/m+1;
       for (; b < num_blocks; b++) {
         const size_t offset = b*m;
         const size_t idc = b%2;
         const size_t idn = (b+1)%2;
-        set_field_block(b+1, field_poly[idn]);
-        convolute_conflicts(field_poly[idn], convoluted[idn]);
+        convolute_conflicts(b+1, convoluted[idn]);
         size_t pos = b == shifted_initial_pos/m ? shifted_initial_pos%m : 0;
         for (; pos < m; pos++) {
           auto cnt_conflict = eval(convoluted[idc][pos]) + eval(convoluted[idn][poly_size-(int)m+pos]);
@@ -214,171 +207,17 @@ struct convolution_bit_fit {
 
 };
 
-
 struct eval_complex_to_integral {
   long long operator()(complex_t c) const { return (long long)(c.real()+0.125); }
 };
+using convolution_fft_bit_fit = convolution_bit_fit<Fft, complex_t, complex_vector, eval_complex_to_integral>;
 
-using convolution_fft_bit_fit = convolution_bit_fit<Fft, complex_t, eval_complex_to_integral>;
-
-
-//struct convolution_fft_bit_fit {
-//  using field_type = default_bit_field;
-//  using traits = bit_fit_traits<field_type>;
-//  using transformer_type = Fft;
-//  using polynomial_type = transformer_type::polynomial_type;
-//
-//  long long eval(complex_t c) const { return (long long)(c.real()+0.125); }
-//
-//  template <typename T>
-//  size_t operator()(const field_type& field, const std::vector<T>& pattern, size_t initial_pos) const {
-//    T max_p = 0, min_p = std::numeric_limits<T>::max();
-//    for (auto p : pattern) {
-//      max_p = std::max(max_p, p);
-//      min_p = std::min(min_p, p);
-//    }
-//    const size_t m = max_p-min_p+1;
-//    transformer_type transformer(calc::greater_eq_pow2(2 * m - 1));
-//    const size_t poly_size = transformer.n();
-//    const size_t shifted_initial_pos = initial_pos + min_p;
-//
-//    polynomial_type pattern_poly_rev_trans(poly_size);
-//    for (auto p : pattern)
-//      pattern_poly_rev_trans[(poly_size-(p-min_p))%poly_size] = 1;
-//
-//    transformer.inplace_transform(pattern_poly_rev_trans);
-//    auto convolute_conflicts = [&](auto field_block, auto& dst) {
-//      transformer.transform(field_block, dst);
-//      for (size_t i = 0; i < poly_size; i++)
-//        dst[i] *= pattern_poly_rev_trans[i];
-//      transformer.inplace_inverse_transform(dst);
-//    };
-//
-//    const size_t num_blocks = (field.size()-1)/m+1;
-//    std::array<polynomial_type, 2> field_poly = {polynomial_type(poly_size), polynomial_type(poly_size)};
-//    std::array<polynomial_type, 2> convoluted;
-//
-//    auto set_field_block = [&](size_t block, auto& vec) {
-//      size_t offset = block*m;
-//      size_t i = 0;
-//      if (field.size()-offset >= m) {
-//        for (; i < m; i++)
-//          vec[i] = field[offset+i] ? 0 : 1;
-//      } else {
-//        for (; offset+i < field.size(); i++)
-//          vec[i] = field[offset+i] ? 0 : 1;
-//        for (; i < m; i++)
-//          vec[i] = 0;
-//      }
-//    };
-//
-//    { // closure of b
-//      size_t b = shifted_initial_pos/m;
-//      set_field_block(b, field_poly[b%2]);
-//      convolute_conflicts(field_poly[b%2], convoluted[b%2]);
-//      for (; b < num_blocks; b++) {
-//        const size_t offset = b*m;
-//        const size_t idc = b%2;
-//        const size_t idn = (b+1)%2;
-//        set_field_block(b+1, field_poly[idn]);
-//        convolute_conflicts(field_poly[idn], convoluted[idn]);
-//        size_t pos = b == shifted_initial_pos/m ? shifted_initial_pos%m : 0;
-//        for (; pos < m; pos++) {
-//          auto cnt_conflict = eval(convoluted[idc][pos]) + eval(convoluted[idn][poly_size-(int)m+pos]);
-//          if (cnt_conflict == 0) {
-//            return offset + pos - min_p;
-//          }
-//        }
-//      }
-//    }
-//
-//    return field.size();
-//  }
-//
-//};
 
 template <typename T>
 struct eval_modint {
   long long operator()(T x) const { return x.val(); }
 };
-
-using convolution_ntt_bit_fit = convolution_bit_fit<Ntt<>, Ntt<>::modint_type, eval_modint<Ntt<>::modint_type>>;
-
-
-//struct convolution_ntt_bit_fit {
-//  using field_type = default_bit_field;
-//  using traits = bit_fit_traits<field_type>;
-//  using transformer_type = Ntt<>;
-//  using polynomial_type = transformer_type::polynomial_type;
-//
-//  long long eval(transformer_type::modint_type x) const { return x.val(); }
-//
-//  template <typename T>
-//  size_t operator()(const field_type& field, const std::vector<T>& pattern, size_t initial_pos) const {
-//    T max_p = 0, min_p = std::numeric_limits<T>::max();
-//    for (auto p : pattern) {
-//	  max_p = std::max(max_p, p);
-//	  min_p = std::min(min_p, p);
-//    }
-//	const size_t m = max_p-min_p+1;
-//	transformer_type transformer(calc::greater_eq_pow2(2 * m - 1));
-//	const size_t poly_size = transformer.n();
-//	const size_t shifted_initial_pos = initial_pos + min_p;
-//
-//	polynomial_type pattern_poly_rev_trans(poly_size);
-//	for (auto p : pattern)
-//	  pattern_poly_rev_trans[(poly_size-(p-min_p))%poly_size] = 1;
-//
-//	transformer.inplace_transform(pattern_poly_rev_trans);
-//	auto convolute_conflicts = [&](auto field_block, auto& dst) {
-//	  transformer.transform(field_block, dst);
-//	  for (size_t i = 0; i < poly_size; i++)
-//        dst[i] *= pattern_poly_rev_trans[i];
-//	  transformer.inplace_inverse_transform(dst);
-//	};
-//
-//	const size_t num_blocks = (field.size()-1)/m+1;
-//	std::array<polynomial_type, 2> field_poly = {polynomial_type(poly_size), polynomial_type(poly_size)};
-//    std::array<polynomial_type, 2> convoluted;
-//
-//	auto set_field_block = [&](size_t block, auto& vec) {
-//	  size_t offset = block*m;
-//	  size_t i = 0;
-//	  if (field.size()-offset >= m) {
-//		for (; i < m; i++)
-//		  vec[i] = field[offset+i] ? 0 : 1;
-//	  } else {
-//		for (; offset+i < field.size(); i++)
-//		  vec[i] = field[offset+i] ? 0 : 1;
-//		for (; i < m; i++)
-//		  vec[i] = 0;
-//	  }
-//	};
-//
-//	{ // closure of b
-//	  size_t b = shifted_initial_pos/m;
-//	  set_field_block(b, field_poly[b%2]);
-//	  convolute_conflicts(field_poly[b%2], convoluted[b%2]);
-//	  for (; b < num_blocks; b++) {
-//		const size_t offset = b*m;
-//		const size_t idc = b%2;
-//		const size_t idn = (b+1)%2;
-//		set_field_block(b+1, field_poly[idn]);
-//		convolute_conflicts(field_poly[idn], convoluted[idn]);
-//		size_t pos = b == shifted_initial_pos/m ? shifted_initial_pos%m : 0;
-//		for (; pos < m; pos++) {
-//		  auto cnt_conflict = eval(convoluted[idc][pos]) + eval(convoluted[idn][poly_size-(int)m+pos]);
-//          if (cnt_conflict == 0) {
-//            return offset + pos - min_p;
-//		  }
-//		}
-//	  }
-//	}
-//
-//	return field.size();
-//  }
-//
-//};
+using convolution_ntt_bit_fit = convolution_bit_fit<Ntt<>, Ntt<>::modint_type, std::vector<Ntt<>::modint_type>, eval_modint<Ntt<>::modint_type>>;
 
 }
 
