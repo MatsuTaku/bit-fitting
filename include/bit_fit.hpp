@@ -14,11 +14,19 @@
 
 namespace bit_fitting {
 
+
+template <typename BitFitter>
+struct bit_fit_traits {
+ public:
+  using field_type = typename BitFitter::field_type;
+};
+
 template <class BitFitter>
 class bit_fit {
  public:
   using bit_fitter = BitFitter;
-  using field_type = typename BitFitter::field_type;
+  using traits = bit_fit_traits<bit_fitter>;
+  using field_type = typename traits::field_type;
  private:
   bit_fitter bit_fitter_;
 
@@ -37,13 +45,6 @@ class bit_fit {
 	  return field_type(default_bf);
   }
 
-};
-
-
-template <typename FieldType = default_bit_field>
-struct bit_fit_traits {
- public:
-  using field_type = FieldType;
 };
 
 
@@ -145,9 +146,9 @@ struct convolutable_vector_behavior : Vec {
   }
 };
 
-template <class Transformer, typename Value, typename Vec, class Eval>
+template <class Transformer, typename Value, class Eval>
 struct convolution_bit_fit {
-  using field_type = convolutable_vector_behavior<Vec>;
+  using field_type = default_bit_field;
   using traits = bit_fit_traits<field_type>;
   using transformer_type = Transformer;
   using polynomial_type = typename transformer_type::polynomial_type;
@@ -176,7 +177,8 @@ struct convolution_bit_fit {
         fill(poly.begin(), poly.end(), 0);
         return;
       }
-      transformer.transform(field.begin()+block*poly_size, field.begin()+(block+1)*poly_size, poly.begin(), poly.end());
+      std::transform(field.begin()+block*poly_size, field.begin()+(block+1)*poly_size, poly.begin(), [](bool v) {return v?0:1;});
+      transformer.inplace_transform(poly.begin(), poly.end());
       for (size_t i = 0; i < poly_size; i++)
         *(poly.begin()+i) *= pattern_poly_rev_trans[i];
       transformer.inplace_inverse_transform(poly.begin(), poly.end());
@@ -210,14 +212,14 @@ struct convolution_bit_fit {
 struct eval_complex_to_integral {
   long long operator()(complex_t c) const { return (long long)(c.real()+0.125); }
 };
-using convolution_fft_bit_fit = convolution_bit_fit<Fft, complex_t, complex_vector, eval_complex_to_integral>;
+using convolution_fft_bit_fit = convolution_bit_fit<Fft, complex_t, eval_complex_to_integral>;
 
 
 template <typename T>
 struct eval_modint {
   long long operator()(T x) const { return x.val(); }
 };
-using convolution_ntt_bit_fit = convolution_bit_fit<Ntt<>, Ntt<>::modint_type, std::vector<Ntt<>::modint_type>, eval_modint<Ntt<>::modint_type>>;
+using convolution_ntt_bit_fit = convolution_bit_fit<Ntt<>, Ntt<>::modint_type, eval_modint<Ntt<>::modint_type>>;
 
 }
 
