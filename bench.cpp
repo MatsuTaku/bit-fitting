@@ -55,9 +55,10 @@ void show_pattern(const std::vector<size_t>& pattern) {
 
 template<class Process>
 double time_us_in(Process process) {
-  auto start = clock();
+  auto start = std::chrono::high_resolution_clock::now();
   process();
-  return clock() - start;
+  auto duration = std::chrono::high_resolution_clock::now() - start;
+  return std::chrono::duration<double, std::micro>(duration).count();
 }
 
 void create_randmom_pieces(size_t alphabet_size, size_t cnt_occures, std::vector<size_t>& dst) {
