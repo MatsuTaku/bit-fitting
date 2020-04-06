@@ -22,10 +22,10 @@ for line in sys.stdin:
 fig, ax = plt.subplots()
 for i in range(len(alg_names)):
     ax.plot(alg_datas[0], alg_datas[i+1], label=alg_names[i])
-ax.set_title('occurence rate: 1/'+str(sys.argv[1]))
-ax.set_xlabel('alphabet size')
+ax.set_title('Obstacle element occurence rate: 1/'+str(sys.argv[1]))
+ax.set_xlabel('Number of alphabet occurence')
 ax.set_xscale('log')
-ax.set_ylabel('time [seconds/query]')
+ax.set_ylabel('Time [seconds/query]')
 ax.set_yscale('log')
 ax.legend()
 
